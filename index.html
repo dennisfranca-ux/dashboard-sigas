@@ -838,7 +838,7 @@ var _roadmapStatusFilter = '';
 
 // ── Dashboard Settings (persisted in localStorage) ────────────────
 var _chartSettings = {};  // { id: { enabled, title, description } }
-var _CHART_DEFS = [["kpi", "KPIs do Projeto", "kpiGrid", "Sempre", "📌 O que é: Resumo executivo dos principais indicadores.\n📐 Como ler: Cada card mostra o valor atual (número grande), a meta de referência, a periodicidade e uma linha de tendência. Verde = dentro da meta. Vermelho = atenção necessária.\n💡 Dica: Comece sempre pelos cards vermelhos para priorizar ações."], ["homolog_pie", "HUs em Homologacao", "cHomologacao", "Quinzenal", "📌 O que é: Distribuição atual das HUs no processo de homologação.\n📐 Como ler: Pizza com 2 fatias — azul (Em Homologação) e verde (Disponível para Homologação). O número no centro é o total somado.\n📋 Fórmula: Total = Em Homologação + Disponível para Homologação.\n💡 Dica: Um alto volume \"Em Homologação\" por muitas sprints pode indicar gargalo no processo de aceite."], ["entregas", "Entregas da Sprint vs Meta", "cEntregas", "Quinzenal", "📌 O que é: Percentual de HUs entregues em relação às planejadas por sprint.\n📐 Como ler: Barras azuis = sprint atingiu a meta (≥ 80%). Barras vermelhas = sprint abaixo da meta. A linha tracejada marca a meta de 80%.\n📋 Fórmula: (HUs Entregues ÷ HUs Planejadas) × 100.\n💡 Dica: Padrão de barras vermelhas consecutivas indica problemas de planejamento ou capacidade."], ["retrabalho", "% de Retrabalho", "cRetrabalho", "Mensal", "📌 O que é: Volume de HUs que precisaram ser reabertas após entrega, agrupado por mês.\n📐 Como ler: Cada barra representa um mês (baseado na Data_Entrega). Barras vermelhas = HUs Reabertas. Barras verdes = HUs Entregues (total acumulado). O tooltip mostra o % de retrabalho calculado. Meta: ≤ 20%.\n📋 Fórmula: (HUs Reabertas ÷ HUs Entregues Total) × 100 por mês.\n💡 Dica: Alto retrabalho indica falhas nos critérios de aceite ou na qualidade dos requisitos."], ["leadtime", "Lead Time por HU", "cLeadTime", "Por HU", "📌 O que é: Tempo individual de cada HU desde o início até o aceite final.\n📐 Como ler: Eixo X = data de aceite. Eixo Y = dias de duração. Ponto azul = dentro da meta (≤ 30 dias). Ponto vermelho = acima da meta. Passe o mouse para ver detalhes da HU.\n📋 Fórmula: Data Aceite − Data Início (em dias).\n💡 Dica: Pontos isolados muito altos indicam HUs complexas ou bloqueadas."], ["aging", "Aging de HU", "cAging", "Semanal", "📌 O que é: Número de dias que as HUs permaneceram paradas no mesmo status (de Backlog até Em Desenvolvimento).\n📐 Como ler: Barras roxas = dentro da meta (≤ 15 dias). Barras vermelhas = acima da meta. A linha tracejada marca 15 dias.\n📋 Objetivo: Detectar atraso oculto por estagnação no fluxo de trabalho.\n💡 Dica: HUs com aging alto indicam bloqueios que precisam de atenção imediata."], ["reprovacao", "% de Reprovacao em Homologacao", "cReprovacao", "Mensal", "📌 O que é: Taxa de HUs devolvidas durante a homologação.\n📐 Como ler: Pizza com 2 fatias — verde (Homologadas com sucesso) e vermelho (Devolvidas). O percentual no centro indica a taxa de reprovação. Meta: ≤ 20%.\n📋 Fórmula: (Devolvidas ÷ (Homologadas + Devolvidas)) × 100.\n💡 Dica: Taxa crescente indica problemas nos critérios de aceite ou qualidade dos requisitos."], ["ltreq", "Lead Time de Requisitos", "cLTRequisitos", "Quinzenal", "📌 O que é: Tempo de levantamento de cada HU desde o início até o aceite do requisito.\n📐 Como ler: Eixo X = data de aceite do levantamento. Eixo Y = dias. Azul = dentro da meta (≤ 15 dias). Vermelho = acima. Amarelo = em andamento (sem aceite ainda).\n📋 Fórmula: Data_Aceite − Data_Inicio (em dias).\n💡 Dica: HUs amarelas com muitos dias indicam levantamentos em aberto há muito tempo."], ["hus", "HUs Priorizadas", "cHUs", "Quinzenal", "📌 O que é: Quantidade de HUs priorizadas para desenvolvimento por sprint.\n📐 Como ler: Cada barra representa uma sprint. A linha tracejada marca a meta de ≥ 4 HUs. Barras abaixo da linha indicam sprints com backlog insuficiente.\n📋 Meta: ≥ 4 HUs priorizadas por sprint.\n💡 Dica: Sprints com poucas HUs priorizadas podem indicar problemas no refinamento do backlog."], ["capacity", "Capacity do Time por Sprint", "cCapacity", "Por Sprint", "📌 O que é: Comparativo entre horas disponíveis e planejadas por função em cada sprint.\n📐 Como ler: Barras azuis = horas disponíveis. Barras amarelas = horas planejadas. Cada grupo é uma função (UX/UI, Front-end, etc.). O tooltip mostra % de utilização e horas livres.\n💡 Dica: Funções com planejado > disponível indicam sobrecarga. Use o filtro de Sprint para análise pontual."], ["burnescrita", "Burndown de Escrita de HUs", "cBurnEscrita", "Quinzenal", "📌 O que é: Ritmo de escrita e refinamento das HUs ao longo do tempo.\n📐 Como ler: 3 linhas — Planejado (tracejada cinza), Tendência Linear (pontilhada amarela) e Real (colorida). A linha Real deve ficar ABAIXO da Tendência Linear para indicar bom ritmo.\n📋 Meta: Linha Real abaixo da tendência linear.\n💡 Dica: Real acima da tendência indica atraso na escrita — revise a capacidade do time de requisitos."], ["burndev", "Burndown de Desenvolvimento de HUs", "cBurnDev", "Quinzenal", "📌 O que é: Ritmo de desenvolvimento das HUs por sprint ao longo do projeto.\n📐 Como ler: Igual ao Burndown de Escrita. A linha Real deve ficar ABAIXO da Tendência Linear para indicar que o desenvolvimento está no ritmo ou à frente.\n📋 Meta: Linha Real abaixo da tendência linear.\n💡 Dica: Real acima da tendência indica que o time está atrasado — verifique impedimentos técnicos."]];
+var _CHART_DEFS = [["kpi", "KPIs do Projeto", "kpiGrid", "Sempre", "📌 O que é: Resumo executivo dos principais indicadores.\n📐 Como ler: Cada card mostra o valor atual (número grande), a meta de referência, a periodicidade e uma linha de tendência. Verde = dentro da meta. Vermelho = atenção necessária.\n💡 Dica: Comece sempre pelos cards vermelhos para priorizar ações."], ["homolog_pie", "HUs em Homologacao", "cHomologacao", "Quinzenal", "📌 O que é: Distribuição atual das HUs no processo de homologação.\n📐 Como ler: Pizza com 2 fatias — azul (Em Homologação) e verde (Disponível para Homologação). O número no centro é o total somado.\n📋 Fórmula: Total = Em Homologação + Disponível para Homologação.\n💡 Dica: Um alto volume \"Em Homologação\" por muitas sprints pode indicar gargalo no processo de aceite."], ["entregas", "% de Entregas da Sprint", "cEntregas", "Quinzenal", "📌 O que é: Percentual de HUs entregues em relação às planejadas por sprint.\n📐 Como ler: Barras azuis = sprint atingiu a meta (≥ 80%). Barras vermelhas = sprint abaixo da meta. A linha tracejada marca a meta de 80%.\n📋 Fórmula: (HUs Entregues ÷ HUs Planejadas) × 100.\n💡 Dica: Padrão de barras vermelhas consecutivas indica problemas de planejamento ou capacidade."], ["retrabalho", "% de Retrabalho", "cRetrabalho", "Mensal", "📌 O que é: Volume de HUs que precisaram ser reabertas após entrega, agrupado por mês.\n📐 Como ler: Cada barra representa um mês (baseado na Data_Entrega). Barras vermelhas = HUs Reabertas. Barras verdes = HUs Entregues (total acumulado). O tooltip mostra o % de retrabalho calculado. Meta: ≤ 20%.\n📋 Fórmula: (HUs Reabertas ÷ HUs Entregues Total) × 100 por mês.\n💡 Dica: Alto retrabalho indica falhas nos critérios de aceite ou na qualidade dos requisitos."], ["leadtime", "Lead Time de HU de Requisitos", "cLeadTime", "Por HU", "📌 O que é: Tempo individual de cada HU desde o início até o aceite final.\n📐 Como ler: Eixo X = data de aceite. Eixo Y = dias de duração. Ponto azul = dentro da meta (≤ 30 dias). Ponto vermelho = acima da meta. Passe o mouse para ver detalhes da HU.\n📋 Fórmula: Data Aceite − Data Início (em dias).\n💡 Dica: Pontos isolados muito altos indicam HUs complexas ou bloqueadas."], ["aging", "Aging de HU", "cAging", "Semanal", "📌 O que é: Número de dias que as HUs permaneceram paradas no mesmo status (de Backlog até Em Desenvolvimento).\n📐 Como ler: Barras roxas = dentro da meta (≤ 15 dias). Barras vermelhas = acima da meta. A linha tracejada marca 15 dias.\n📋 Objetivo: Detectar atraso oculto por estagnação no fluxo de trabalho.\n💡 Dica: HUs com aging alto indicam bloqueios que precisam de atenção imediata."], ["reprovacao", "% de Reprovacao em Homologacao", "cReprovacao", "Mensal", "📌 O que é: Taxa de HUs devolvidas durante a homologação.\n📐 Como ler: Pizza com 2 fatias — verde (Homologadas com sucesso) e vermelho (Devolvidas). O percentual no centro indica a taxa de reprovação. Meta: ≤ 20%.\n📋 Fórmula: (Devolvidas ÷ (Homologadas + Devolvidas)) × 100.\n💡 Dica: Taxa crescente indica problemas nos critérios de aceite ou qualidade dos requisitos."], ["ltreq", "Lead Time de Requisitos", "cLTRequisitos", "Quinzenal", "📌 O que é: Tempo de levantamento de cada HU desde o início até o aceite do requisito.\n📐 Como ler: Eixo X = data de aceite do levantamento. Eixo Y = dias. Azul = dentro da meta (≤ 15 dias). Vermelho = acima. Amarelo = em andamento (sem aceite ainda).\n📋 Fórmula: Data_Aceite − Data_Inicio (em dias).\n💡 Dica: HUs amarelas com muitos dias indicam levantamentos em aberto há muito tempo."], ["hus", "HUs Priorizadas", "cHUs", "Quinzenal", "📌 O que é: Quantidade de HUs priorizadas para desenvolvimento por sprint.\n📐 Como ler: Cada barra representa uma sprint. A linha tracejada marca a meta de ≥ 4 HUs. Barras abaixo da linha indicam sprints com backlog insuficiente.\n📋 Meta: ≥ 4 HUs priorizadas por sprint.\n💡 Dica: Sprints com poucas HUs priorizadas podem indicar problemas no refinamento do backlog."], ["capacity", "Capacity do Time por Sprint", "cCapacity", "Por Sprint", "📌 O que é: Comparativo entre horas disponíveis e planejadas por função em cada sprint.\n📐 Como ler: Barras azuis = horas disponíveis. Barras amarelas = horas planejadas. Cada grupo é uma função (UX/UI, Front-end, etc.). O tooltip mostra % de utilização e horas livres.\n💡 Dica: Funções com planejado > disponível indicam sobrecarga. Use o filtro de Sprint para análise pontual."], ["burnescrita", "Burndown de Escrita de HUs", "cBurnEscrita", "Quinzenal", "📌 O que é: Ritmo de escrita e refinamento das HUs ao longo do tempo.\n📐 Como ler: 3 linhas — Planejado (tracejada cinza), Tendência Linear (pontilhada amarela) e Real (colorida). A linha Real deve ficar ABAIXO da Tendência Linear para indicar bom ritmo.\n📋 Meta: Linha Real abaixo da tendência linear.\n💡 Dica: Real acima da tendência indica atraso na escrita — revise a capacidade do time de requisitos."], ["burndev", "Burndown de Desenvolvimento de HUs", "cBurnDev", "Quinzenal", "📌 O que é: Ritmo de desenvolvimento das HUs por sprint ao longo do projeto.\n📐 Como ler: Igual ao Burndown de Escrita. A linha Real deve ficar ABAIXO da Tendência Linear para indicar que o desenvolvimento está no ritmo ou à frente.\n📋 Meta: Linha Real abaixo da tendência linear.\n💡 Dica: Real acima da tendência indica que o time está atrasado — verifique impedimentos técnicos."]];
 function loadChartSettings() {
   var saved = localStorage.getItem('dashboardChartSettings');
   if (saved) { try { _chartSettings = JSON.parse(saved); } catch(e){} }
@@ -857,6 +857,29 @@ function saveChartSettings() {
 
 // ── Exportar Dashboard com Configurações Embutidas ───
 function exportConfiguredDashboard() {
+  // Verificar se está rodando via file://
+  if (window.location.protocol === 'file:') {
+    var msg = '⚠️ EXPORTAÇÃO REQUER SERVIDOR LOCAL\n\n' +
+              'Navegadores bloqueiam a leitura de arquivos file:// por segurança.\n\n' +
+              '📋 SOLUÇÃO RÁPIDA (2 minutos):\n\n' +
+              '1️⃣ Abra o Terminal/Prompt na pasta do arquivo\n\n' +
+              '2️⃣ Execute um destes comandos:\n' +
+              '   • python -m http.server 8000\n' +
+              '   • python3 -m http.server 8000\n' +
+              '   • npx http-server -p 8000\n\n' +
+              '3️⃣ Abra no navegador:\n' +
+              '   http://localhost:8000/dashboard_montreal.html\n\n' +
+              '4️⃣ Exporte normalmente (funcionará 100%)\n\n' +
+              '💡 Ou use Firefox que é mais permissivo.\n\n' +
+              'Deseja ver instruções detalhadas?';
+    
+    if (confirm(msg)) {
+      // Mostrar instruções detalhadas
+      showServerInstructions();
+    }
+    return;
+  }
+  
   // Confirmar ação
   if (!confirm('Isso vai gerar um novo arquivo HTML com TODAS as suas configurações embutidas (títulos, descrições, URL do Apps Script).\n\nQuando outras pessoas abrirem esse arquivo, verão exatamente o que você configurou.\n\nDeseja continuar?')) {
     return;
@@ -865,72 +888,123 @@ function exportConfiguredDashboard() {
   // Salvar configurações atuais primeiro
   saveCfgSettings();
   
-  // Pegar HTML da página atual
-  var htmlContent = document.documentElement.outerHTML;
-  
-  // 1. Substituir _CHART_DEFS com configurações personalizadas
-  var newChartDefs = [];
-  _CHART_DEFS.forEach(function(def) {
-    var id = def[0];
-    var settings = _chartSettings[id] || {};
-    var title = settings.title || def[1];
-    var desc = settings.description || def[4];
+  try {
+    // Usar XMLHttpRequest que funciona com http://
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', window.location.href, false); // false = síncrono
+    xhr.send(null);
     
-    // Escapar aspas na descrição
-    desc = desc.replace(/"/g, '\\"').replace(/\n/g, '\\n');
-    title = title.replace(/"/g, '\\"');
+    if (xhr.status !== 200 && xhr.status !== 0) {
+      throw new Error('Não foi possível carregar o arquivo');
+    }
     
-    newChartDefs.push('[\"' + id + '\", \"' + title + '\", \"' + def[2] + '\", \"' + def[3] + '\", \"' + desc + '\"]');
-  });
-  
-  var newChartDefsStr = '[' + newChartDefs.join(', ') + ']';
-  
-  // Encontrar e substituir _CHART_DEFS
-  var chartDefsRegex = /var _CHART_DEFS = \[.*?\]\];/s;
-  htmlContent = htmlContent.replace(chartDefsRegex, 'var _CHART_DEFS = ' + newChartDefsStr + ';');
-  
-  // 2. Substituir URL do Apps Script se configurada
-  var scriptUrl = localStorage.getItem('dashboardScriptUrl');
-  if (scriptUrl) {
-    var urlRegex = /localStorage\.getItem\('dashboardScriptUrl'\);[\s\S]*?if \(saved\) \{ url = saved; \}/;
-    var replacement = 'localStorage.getItem(\'dashboardScriptUrl\');\n  var url = \'' + scriptUrl + '\';\n  if (saved) { url = saved; }';
-    htmlContent = htmlContent.replace(urlRegex, replacement);
+    var htmlContent = xhr.responseText;
+    
+    // 1. Substituir _CHART_DEFS com configurações personalizadas
+    var newChartDefs = [];
+    _CHART_DEFS.forEach(function(def) {
+      var id = def[0];
+      var settings = _chartSettings[id] || {};
+      var title = settings.title || def[1];
+      var desc = settings.description || def[4];
+      
+      // Usar JSON.stringify para escapar corretamente
+      newChartDefs.push('[' + 
+        JSON.stringify(id) + ', ' + 
+        JSON.stringify(title) + ', ' + 
+        JSON.stringify(def[2]) + ', ' + 
+        JSON.stringify(def[3]) + ', ' + 
+        JSON.stringify(desc) + 
+      ']');
+    });
+    
+    var newChartDefsStr = '[' + newChartDefs.join(', ') + ']';
+    
+    // Encontrar e substituir _CHART_DEFS
+    var chartDefsRegex = /var _CHART_DEFS = \[[\s\S]*?\]\];/;
+    htmlContent = htmlContent.replace(chartDefsRegex, 'var _CHART_DEFS = ' + newChartDefsStr + ';');
+    
+    // 2. Substituir URL do Apps Script se configurada
+    var scriptUrl = localStorage.getItem('dashboardScriptUrl');
+    if (scriptUrl) {
+      // Substituir URL_FIXA
+      var urlFixaRegex = /var URL_FIXA = ['"].*?['"];/;
+      htmlContent = htmlContent.replace(urlFixaRegex, 'var URL_FIXA = \'' + scriptUrl + '\';');
+    }
+    
+    // 3. Criar arquivo e download
+    var blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    
+    // Nome do arquivo com data
+    var hoje = new Date();
+    var dataStr = hoje.getFullYear() + '-' + 
+                  String(hoje.getMonth() + 1).padStart(2, '0') + '-' + 
+                  String(hoje.getDate()).padStart(2, '0');
+    link.download = 'dashboard_montreal_configurado_' + dataStr + '.html';
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    
+    alert('✅ Dashboard exportado com sucesso!\n\nEnvie o arquivo baixado para outras pessoas.\nQuando elas abrirem, verão suas configurações personalizadas.');
+    
+  } catch (error) {
+    alert('❌ Erro ao exportar: ' + error.message + '\n\nUse servidor local conforme instruções.');
   }
+}
+
+function showServerInstructions() {
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
   
-  // 3. Garantir que arquivo exportado sempre abre em "Visão Geral"
-  // Remover 'active' de todos os botões de aba
-  htmlContent = htmlContent.replace(/(<button class="tab) active(" id="tabOverview")/g, '$1$2');
-  htmlContent = htmlContent.replace(/(<button class="tab) active(" id="tabRoadmap")/g, '$1$2');
-  htmlContent = htmlContent.replace(/(<button class="tab) active(" id="tabConfig")/g, '$1$2');
-  // Adicionar 'active' apenas em tabOverview
-  htmlContent = htmlContent.replace(/(<button class="tab")(id="tabOverview")/, '<button class="tab active" $2');
+  var box = document.createElement('div');
+  box.style.cssText = 'background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:30px;max-width:700px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)';
   
-  // Remover 'active' de todos os painéis
-  htmlContent = htmlContent.replace(/(<div id="overview" class="panel) active(")/g, '$1$2');
-  htmlContent = htmlContent.replace(/(<div id="roadmap" class="panel) active(")/g, '$1$2');
-  htmlContent = htmlContent.replace(/(<div id="config" class="panel) active(")/g, '$1$2');
-  // Adicionar 'active' apenas em overview
-  htmlContent = htmlContent.replace(/(<div id="overview" class="panel")/, '<div id="overview" class="panel active"');
+  box.innerHTML = `
+    <h2 style="color:#58a6ff;margin:0 0 20px 0;font-size:22px">📚 Como Usar Servidor Local</h2>
+    
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:20px">
+      <h3 style="color:#8b949e;font-size:14px;margin:0 0 15px 0;text-transform:uppercase;letter-spacing:1px">Windows</h3>
+      <ol style="color:#c9d1d9;line-height:1.8;margin:0;padding-left:20px">
+        <li>Abra o <strong>Explorador de Arquivos</strong></li>
+        <li>Vá até a pasta onde está <code style="background:#30363d;padding:2px 6px;border-radius:4px">dashboard_montreal.html</code></li>
+        <li>Na barra de endereço, digite <code style="background:#30363d;padding:2px 6px;border-radius:4px">cmd</code> e pressione Enter</li>
+        <li>No prompt, digite: <code style="background:#30363d;padding:2px 6px;border-radius:4px">python -m http.server 8000</code></li>
+        <li>Abra navegador em: <code style="background:#30363d;padding:2px 6px;border-radius:4px;color:#58a6ff">http://localhost:8000/dashboard_montreal.html</code></li>
+      </ol>
+    </div>
+    
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:20px">
+      <h3 style="color:#8b949e;font-size:14px;margin:0 0 15px 0;text-transform:uppercase;letter-spacing:1px">Mac / Linux</h3>
+      <ol style="color:#c9d1d9;line-height:1.8;margin:0;padding-left:20px">
+        <li>Abra o <strong>Terminal</strong></li>
+        <li>Digite: <code style="background:#30363d;padding:2px 6px;border-radius:4px">cd /caminho/para/pasta</code></li>
+        <li>Digite: <code style="background:#30363d;padding:2px 6px;border-radius:4px">python3 -m http.server 8000</code></li>
+        <li>Abra navegador em: <code style="background:#30363d;padding:2px 6px;border-radius:4px;color:#58a6ff">http://localhost:8000/dashboard_montreal.html</code></li>
+      </ol>
+    </div>
+    
+    <div style="background:#1f6feb20;border:1px solid #1f6feb;border-radius:8px;padding:15px;margin-bottom:20px">
+      <p style="color:#58a6ff;margin:0;font-size:13px;line-height:1.7">
+        💡 <strong>Dica:</strong> Mantenha o terminal aberto enquanto usar o dashboard. Para parar o servidor, pressione <code style="background:#30363d;padding:2px 6px;border-radius:4px">Ctrl+C</code>
+      </p>
+    </div>
+    
+    <button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:12px;background:#238636;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">
+      Entendi!
+    </button>
+  `;
   
-  // 4. Criar arquivo e download
-  var blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-  var link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
+  modal.appendChild(box);
+  document.body.appendChild(modal);
   
-  // Nome do arquivo com data
-  var hoje = new Date();
-  var dataStr = hoje.getFullYear() + '-' + 
-                String(hoje.getMonth() + 1).padStart(2, '0') + '-' + 
-                String(hoje.getDate()).padStart(2, '0');
-  link.download = 'dashboard_montreal_configurado_' + dataStr + '.html';
-  
-  // Trigger download
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(link.href);
-  
-  alert('✅ Dashboard exportado com sucesso!\n\nEnvie o arquivo baixado para outras pessoas.\nQuando elas abrirem, verão suas configurações personalizadas.');
+  modal.onclick = function(e) {
+    if (e.target === modal) modal.remove();
+  };
 }
 
 
@@ -3181,8 +3255,9 @@ window.addEventListener('DOMContentLoaded', function() {
     loadFromScript();
     return;
   }
+  // Sem URL: carregar dados demo automaticamente E mostrar modal
+  loadDemo();
   document.getElementById('setupOverlay').style.display = 'flex';
-  switchTab('config', document.getElementById('tabConfig'));
 });
 </script>
 </body>
