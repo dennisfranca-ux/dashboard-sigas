@@ -1,0 +1,3189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard KPIs - Montreal / ASGE</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700;800&display=swap');
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2230;--border:#21262d;
+  --accent:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;
+  --purple:#bc8cff;--text:#e6edf3;--muted:#7d8590;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;min-height:100vh;}
+
+/* MODAL */
+#setupOverlay{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+#setupBox{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:580px;width:92%;box-shadow:0 24px 64px rgba(0,0,0,.6);max-height:90vh;overflow-y:auto;}
+#setupBox h2{font-size:17px;color:var(--accent);margin-bottom:6px;}
+.setup-intro{font-size:12px;color:var(--muted);margin-bottom:22px;line-height:1.8;}
+.step-block{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;}
+.step-num{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;margin-bottom:8px;}
+.step-txt{font-size:12px;color:var(--text);line-height:1.8;}
+.step-txt code{background:var(--surface2);padding:2px 7px;border-radius:4px;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:11px;}
+.step-txt .path{color:var(--yellow);}
+.url-input-wrap{margin-top:10px;display:flex;gap:8px;}
+.url-input-wrap input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:12px;font-family:'IBM Plex Mono',monospace;outline:none;transition:border-color .2s;}
+.url-input-wrap input:focus{border-color:var(--accent);}
+.url-input-wrap input::placeholder{color:var(--muted);}
+.btn-primary{padding:10px 20px;background:var(--accent);color:#0d1117;border:none;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;white-space:nowrap;}
+.btn-primary:hover{opacity:.85;}
+.btn-demo{width:100%;padding:10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;margin-top:8px;}
+.btn-demo:hover{color:var(--text);border-color:var(--muted);}
+.script-box{background:#000;border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7ee787;line-height:1.8;max-height:160px;overflow-y:auto;white-space:pre;}
+.copy-btn{margin-top:8px;padding:6px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;}
+.copy-btn:hover{color:var(--text);}
+.setup-tip{margin-top:10px;padding:10px 12px;background:rgba(88,166,255,.07);border:1px solid rgba(88,166,255,.2);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.7;}
+.setup-tip strong{color:var(--accent);}
+
+/* TOPBAR */
+#app{display:block;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;}
+.topbar h1{font-size:16px;font-weight:800;}
+.topbar h1 span{color:var(--accent);}
+.topbar p{font-size:11px;color:var(--muted);margin-top:2px;font-family:'IBM Plex Mono',monospace;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.live-dot{display:flex;align-items:center;gap:6px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.live-lbl{font-size:10px;color:var(--green);letter-spacing:1.2px;text-transform:uppercase;font-weight:700;font-family:'IBM Plex Mono',monospace;}
+.btn-sm{background:none;border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;}
+.btn-sm:hover{color:var(--text);border-color:var(--muted);}
+#lastUpdate{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+
+/* FILTERBAR */
+.filterbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.filter-group{display:flex;align-items:center;gap:7px;}
+.filter-lbl{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+.fselect{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-size:12px;font-family:'IBM Plex Sans',sans-serif;cursor:pointer;outline:none;transition:border-color .2s;min-width:140px;}
+.fselect:focus,.fselect:hover{border-color:var(--accent);}
+.fselect option{background:var(--surface);}
+.filter-sep{width:1px;height:24px;background:var(--border);}
+#activeFilters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.filter-tag{display:inline-flex;align-items:center;gap:5px;font-size:10px;background:rgba(88,166,255,.1);color:var(--accent);border:1px solid rgba(88,166,255,.25);border-radius:20px;padding:2px 10px;font-family:'IBM Plex Mono',monospace;}
+.filter-tag button{background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;padding:0;line-height:1;}
+
+/* CONTENT */
+.content{padding:24px;}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.tab{background:none;border:none;border-bottom:2px solid transparent;padding:8px 16px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;margin-bottom:-1px;transition:all .15s;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab:hover:not(.active){color:var(--text);}
+#loading{display:none;text-align:center;padding:80px 20px;}
+#loading p{font-size:13px;color:var(--muted);margin-top:14px;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:14px;margin-bottom:20px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;transition:box-shadow .2s,border-color .2s;}
+.kpi-card:hover{box-shadow:0 0 0 1px rgba(88,166,255,.25),0 4px 20px rgba(88,166,255,.08);border-color:rgba(88,166,255,.25);}
+.kpi-top{display:flex;justify-content:space-between;align-items:flex-start;}
+.kpi-lbl{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.8px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;margin-bottom:5px;}
+.kpi-val{font-size:30px;font-weight:800;}
+.kpi-unit{font-size:14px;color:var(--muted);font-weight:400;}
+.kpi-meta{font-size:11px;color:var(--muted);margin-top:3px;}
+.kpi-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;margin-left:8px;}
+.badge{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;}
+.badge.ok{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.3);}
+.badge.warn{background:rgba(248,81,73,.15);color:var(--red);border:1px solid rgba(248,81,73,.3);}
+.freq{font-size:10px;color:var(--muted);background:var(--border);border-radius:20px;padding:2px 8px;white-space:nowrap;font-family:'IBM Plex Mono',monospace;}
+.mini-chart{height:50px;margin-top:10px;}
+
+/* CHARTS */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.chart-card.wide{grid-column:span 2;}
+.chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.chart-header.left-aligned{justify-content:flex-start;gap:12px;}
+.chart-title{font-size:13px;font-weight:700;}
+.chart-wrap{position:relative;height:220px;}
+.chart-wrap.tall{height:380px;}
+.chart-wrap.xl{height:260px;}
+
+/* BURNDOWN LEGEND */
+.burn-legend{grid-column:span 2;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.burn-legend h3{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;}
+.leg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.leg-item{display:flex;gap:10px;align-items:flex-start;}
+.leg-line{width:28px;height:3px;border-radius:2px;margin-top:8px;flex-shrink:0;}
+.leg-lbl{font-size:11px;font-weight:700;margin-bottom:2px;}
+.leg-desc{font-size:11px;color:var(--muted);line-height:1.5;}
+
+/* GUIDE */
+.guia-wrap{max-width:860px;display:flex;flex-direction:column;gap:14px;}
+.guia-header{background:var(--surface);border:1px solid rgba(88,166,255,.3);border-radius:12px;padding:20px;}
+.guia-header h2{color:var(--accent);font-size:16px;margin-bottom:4px;}
+.guia-header p{font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+.fase-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.fase-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.fase-badge{font-size:10px;font-weight:700;border-radius:20px;padding:3px 10px;letter-spacing:1px;font-family:'IBM Plex Mono',monospace;}
+.fase-titulo{font-size:14px;font-weight:700;}
+.passo{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;}
+.passo:last-child{margin-bottom:0;}
+.passo-num{font-size:11px;font-weight:700;min-width:22px;margin-top:2px;font-family:'IBM Plex Mono',monospace;}
+.passo-txt{font-size:12px;line-height:1.7;color:var(--text);}
+.passo-txt code{background:var(--border);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);}
+.sheet-preview{overflow-x:auto;margin-top:10px;}
+table.model{border-collapse:collapse;font-size:11px;font-family:'IBM Plex Mono',monospace;width:100%;}
+table.model th{background:var(--surface2);color:var(--accent);padding:7px 10px;text-align:left;border:1px solid var(--border);white-space:nowrap;}
+table.model td{color:var(--muted);padding:6px 10px;border:1px solid var(--border);white-space:nowrap;}
+
+/* FOOTER */
+.roadmap-row{display:flex;align-items:stretch;border-bottom:1px solid var(--border);min-height:32px;}
+.roadmap-row:last-child{border-bottom:none;}
+.roadmap-row:hover{background:var(--surface2);}
+.roadmap-label{flex-shrink:0;width:260px;display:flex;align-items:center;padding:5px 10px;border-right:1px solid var(--border);font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:sticky;left:0;z-index:2;}
+.roadmap-label.lvl-0{font-weight:800;color:var(--accent);background:var(--surface2);font-size:12px;}
+.roadmap-label.lvl-1{padding-left:20px;color:var(--purple);font-weight:700;background:var(--surface);}
+.roadmap-label.lvl-2{padding-left:38px;color:var(--muted);background:var(--surface);}
+.roadmap-timeline{flex:1;position:relative;display:flex;align-items:center;}
+.roadmap-header{display:flex;align-items:stretch;border-bottom:2px solid var(--border);position:sticky;top:0;z-index:10;background:var(--surface2);}
+.roadmap-header-label{flex-shrink:0;width:260px;padding:8px 10px;font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border-right:1px solid var(--border);position:sticky;left:0;z-index:11;background:var(--surface2);}
+.roadmap-header-cells{flex:1;display:flex;}
+.roadmap-period{text-align:center;font-size:9px;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding:8px 2px;border-right:1px solid var(--border);overflow:hidden;}
+.roadmap-period.today-col{background:rgba(88,166,255,.06);}
+.roadmap-bar-wrap{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;}
+.roadmap-bar{position:absolute;height:18px;top:50%;transform:translateY(-50%);border-radius:3px;pointer-events:auto;cursor:pointer;transition:opacity .15s;}
+.roadmap-bar:hover{opacity:.8;}
+.roadmap-bar.s-concluido{background:rgba(63,185,80,.8);border:1px solid #3fb950;}
+.roadmap-bar.s-andamento{background:rgba(88,166,255,.8);border:1px solid #58a6ff;}
+.roadmap-bar.s-planejado{background:rgba(125,133,144,.4);border:1px solid #7d8590;}
+.roadmap-bar.lvl-0{height:22px;border-radius:4px;}
+.roadmap-bar.lvl-1{height:18px;}
+.roadmap-bar.lvl-2{height:12px;border-radius:2px;}
+.roadmap-today{position:absolute;top:0;bottom:0;width:2px;background:rgba(248,81,73,.7);pointer-events:none;z-index:5;}
+.roadmap-tooltip{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--text);z-index:9999;pointer-events:none;display:none;box-shadow:0 4px 20px rgba(0,0,0,.4);max-width:260px;line-height:1.7;}
+.draggable-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.draggable-grid.single{grid-template-columns:1fr;}
+.chart-card[draggable]{cursor:grab;transition:opacity .2s,box-shadow .2s;}
+.chart-card[draggable]:active{cursor:grabbing;}
+.chart-card.drag-over{box-shadow:0 0 0 2px var(--accent),0 4px 20px rgba(88,166,255,.2);opacity:.85;}
+.chart-card.dragging{opacity:.4;}
+.drag-handle{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;cursor:grab;color:var(--muted);margin-right:6px;flex-shrink:0;border-radius:3px;}
+.drag-handle:hover{color:var(--accent);background:rgba(88,166,255,.1);}
+.drag-handle svg{width:12px;height:12px;fill:currentColor;}
+.cfg-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.cfg-tab{background:none;border:none;border-bottom:2px solid transparent;padding:7px 14px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;margin-bottom:-1px;transition:all .15s;}
+.cfg-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.cfg-tab:hover:not(.active){color:var(--text);}
+.cfg-panel{display:none;}
+.cfg-panel.active{display:block;}
+.chart-cfg-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s;}
+.chart-cfg-card:hover{border-color:var(--accent);}
+.chart-cfg-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.cfg-toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+.cfg-toggle input{opacity:0;width:0;height:0;}
+.cfg-slider{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:20px;transition:.2s;}
+.cfg-slider:before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:var(--muted);border-radius:50%;transition:.2s;}
+.cfg-toggle input:checked + .cfg-slider{background:rgba(88,166,255,.3);}
+.cfg-toggle input:checked + .cfg-slider:before{background:var(--accent);transform:translateX(16px);}
+.cfg-name-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none;transition:border-color .2s;}
+.cfg-name-input:focus{border-color:var(--accent);}
+.cfg-reset-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:10px;color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+.cfg-reset-btn:hover{color:var(--text);border-color:var(--muted);}
+.cfg-desc-label{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.7px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;margin-bottom:4px;}
+.cfg-desc-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:11px;font-family:inherit;outline:none;resize:vertical;min-height:52px;line-height:1.5;transition:border-color .2s;}
+.cfg-desc-input:focus{border-color:var(--accent);}
+.cfg-save-btn{margin-top:14px;padding:9px 20px;background:var(--accent);color:#0d1117;border:none;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit;}
+.cfg-save-btn:hover{opacity:.85;}
+.cfg-saved{color:var(--green);font-size:11px;font-family:'IBM Plex Mono',monospace;margin-left:10px;opacity:0;transition:opacity .3s;}
+.info-badge{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(88,166,255,.2);color:var(--accent);font-size:9px;font-weight:700;cursor:pointer;margin-left:4px;vertical-align:middle;flex-shrink:0;}
+.footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+
+@media(max-width:700px){
+  .chart-grid{grid-template-columns:1fr;}
+  [style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr !important;}
+  .chart-card.wide,.burn-legend{grid-column:span 1;}
+  .leg-grid{grid-template-columns:1fr;}
+  .topbar{flex-wrap:wrap;gap:8px;}
+}
+</style>
+</head>
+<body>
+
+<!-- MODAL -->
+<div id="setupOverlay">
+ <div id="setupBox">
+  <h2>Conectar ao Google Sheets</h2>
+  <p class="setup-intro">Cole a URL do seu Apps Script abaixo. Consulte a aba "Como Configurar" para o passo a passo completo.</p>
+  <div class="step-block">
+   <div class="step-num">Passo 1 - Criar o Apps Script na planilha</div>
+   <div class="step-txt">Na planilha: <span class="path">Extensoes &rarr; Apps Script</span> &rarr; apague o codigo existente &rarr; cole o codigo abaixo &rarr; Salvar &rarr; Implantar &rarr; Nova implantacao &rarr; Tipo: App da Web &rarr; Acesso: Qualquer pessoa &rarr; Implantar &rarr; copie a URL gerada.</div>
+   <div class="script-box" id="modalScriptCode">function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var aba = e.parameter.aba || "Sprints";
+  var sheet = ss.getSheetByName(aba);
+  if (!sheet) return ContentService.createTextOutput("[]").setMimeType(ContentService.MimeType.JSON);
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var rows = data.slice(1).map(function(row) {
+    var obj = {};
+    headers.forEach(function(h, i) { obj[h] = row[i]; });
+    return obj;
+  });
+  var out = ContentService.createTextOutput(JSON.stringify(rows));
+  out.setMimeType(ContentService.MimeType.JSON);
+  return out;
+}</div>
+   <button class="copy-btn" id="modalCopyBtn" onclick="copyModalScript()">Copiar codigo</button>
+  </div>
+  <div class="step-block">
+   <div class="step-num">Passo 2 - Cole a URL aqui</div>
+   <div class="url-input-wrap">
+    <input type="text" id="inputScriptUrl" placeholder="https://script.google.com/macros/s/XXXXX/exec"/>
+    <button class="btn-primary" onclick="loadFromScript()">Conectar</button>
+   </div>
+   <div class="setup-tip"><strong>Salvar permanentemente:</strong> Abra o .html no Bloco de Notas, localize <code>const URL_FIXA = ''</code> e cole sua URL entre as aspas.</div>
+  </div>
+  <button class="btn-demo" onclick="loadDemo()">Usar dados de demonstracao</button>
+  <button class="btn-demo" style="margin-top:4px;color:var(--red);border-color:rgba(248,81,73,.3)" onclick="forgetUrl()">Esquecer URL salva</button>
+ </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+ <div class="topbar">
+  <div>
+   <h1>Dashboard KPIs - <span>Montreal</span></h1>
+   <p id="topbarSub">Azure DevOps - Projeto ASGE</p>
+  </div>
+  <div class="topbar-right">
+   <div class="live-dot"><div class="dot"></div><span class="live-lbl">Ao Vivo</span></div>
+   <span id="lastUpdate">-</span>
+   <button class="btn-sm" onclick="showSetup()">Reconfigurar</button>
+  </div>
+ </div>
+
+ <!-- FILTERBAR -->
+ <div class="filterbar" id="filterBar" style="display:none">
+  <div class="filter-group">
+   <span class="filter-lbl">Modulo</span>
+   <select class="fselect" id="filterModulo" onchange="applyFilters()">
+    <option value="">Todos os modulos</option>
+   </select>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+   <span class="filter-lbl">Sprint</span>
+   <select class="fselect" id="filterSprint" onchange="applyFilters()">
+    <option value="">Todas as sprints</option>
+   </select>
+  </div>
+  <div class="filter-sep"></div>
+  <div id="activeFilters"></div>
+  <button class="btn-sm" style="margin-left:auto" onclick="clearFilters()">Limpar filtros</button>
+ </div>
+
+ <div class="content">
+  <div class="tabs">
+   <button class="tab active" id="tabOverview" onclick="switchTab('overview',this)">Visao Geral</button>
+   <button class="tab" id="tabRoadmap" onclick="switchTab('roadmap',this);buildRoadmapGantt()">Roadmap</button>
+   <button class="tab" id="tabConfig" onclick="checkConfigPassword('config',this)">Como Configurar</button>
+  </div>
+
+  <div id="loading"><div class="spinner"></div><p>Carregando dados...</p></div>
+
+  <!-- OVERVIEW -->
+  <div id="overview" class="panel active">
+   <div style="display:grid;grid-template-columns:1fr auto;gap:14px;margin-bottom:20px;align-items:start">
+    <div class="kpi-grid" id="kpiGrid" style="margin-bottom:0"></div>
+    <div class="kpi-card" style="min-width:230px;max-width:260px">
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.8px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace">HUs em Homologacao</span>
+      <span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace">Quinzenal</span>
+     </div>
+     <div style="height:160px"><canvas id="cHomologacao"></canvas></div>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+      <div style="background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:8px;text-align:center">
+       <div id="homologTotal1" style="font-size:22px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums">-</div>
+       <div style="font-size:9px;color:var(--muted);margin-top:2px;line-height:1.3">Em<br>Homologacao</div>
+      </div>
+      <div style="background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:8px;text-align:center">
+       <div id="homologTotal2" style="font-size:22px;font-weight:800;color:var(--green);font-variant-numeric:tabular-nums">-</div>
+       <div style="font-size:9px;color:var(--muted);margin-top:2px;line-height:1.3">Disponivel p/<br>Homologacao</div>
+      </div>
+     </div>
+    </div>
+   </div>
+   <!-- Entregas -->
+   <div class="chart-grid">
+    <div class="chart-card wide" draggable="true">
+     <div class="chart-header" style="flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px"><span class="drag-handle" title="Arrastar"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg></span><span class="chart-title">Entregas da Sprint vs Meta</span></div>
+      <span class="freq">Quinzenal</span>
+     </div>
+     <div class="chart-wrap"><canvas id="cEntregas"></canvas></div>
+    </div>
+   </div>
+   <!-- Lead Time -->
+   <div class="chart-grid">
+    <div class="chart-card wide">
+     <div class="chart-header" style="flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px"><span class="drag-handle" title="Arrastar"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg></span><span class="chart-title">Lead Time por HU</span></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+       <span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.7px">Feature</span>
+       <select class="fselect" id="filterFeature" onchange="applyFeatureFilter()" style="min-width:110px;padding:4px 10px;font-size:11px">
+        <option value="">Todas</option>
+       </select>
+       <span class="freq">Por HU</span>
+      </div>
+     </div>
+     <div class="chart-wrap xl"><canvas id="cLeadTime"></canvas></div>
+    </div>
+   </div>
+   <!-- Aging + Qualidade -->
+      <!-- Retrabalho + Aging + Reprovacao — 3 colunas -->
+   <div class="chart-grid">
+    <div class="chart-card wide" id="card-retrabalho" draggable="true">
+          <div class="chart-header" style="flex-wrap:wrap;gap:8px">
+           <div style="display:flex;align-items:center;gap:6px"><span class="drag-handle" title="Arrastar"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg></span><span class="chart-title">% de Retrabalho</span></div>
+           <span class="freq">Mensal</span>
+          </div>
+          <div class="chart-wrap"><canvas id="cRetrabalho"></canvas></div>
+    </div>
+   </div>
+   <div class="chart-grid">
+    <div class="chart-card wide" id="card-aging" draggable="true">
+          <div class="chart-header" style="flex-wrap:wrap;gap:8px">
+           <div style="display:flex;align-items:center;gap:6px"><span class="drag-handle" title="Arrastar"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg></span><span class="chart-title">Aging de HU</span></div>
+           <span class="freq">Semanal</span>
+          </div>
+          <div class="chart-wrap"><canvas id="cAging"></canvas></div>
+    </div>
+   </div>
+   <div class="chart-grid">
+    <div class="chart-card" id="card-reprovacao" draggable="true">
+          <div class="chart-header" style="flex-wrap:wrap;gap:8px">
+           <div style="display:flex;align-items:center;gap:6px"><span class="drag-handle" title="Arrastar"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg></span><span class="chart-title">% de Reprovacao em Homologacao</span></div>
+           <span class="freq">Mensal</span>
+          </div>
+          <div class="chart-wrap"><canvas id="cReprovacao"></canvas></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+           <div style="background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.25);border-radius:8px;padding:7px;text-align:center">
+            <div id="reprovHomologadas" style="font-size:20px;font-weight:800;color:var(--green);font-variant-numeric:tabular-nums">-</div>
+            <div style="font-size:9px;color:var(--muted);margin-top:1px;line-height:1.3">Homologadas</div>
+           </div>
+           <div style="background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25);border-radius:8px;padding:7px;text-align:center">
+            <div id="reprovDevolvidas" style="font-size:20px;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums">-</div>
+            <div style="font-size:9px;color:var(--muted);margin-top:1px;line-height:1.3">Devolvidas</div>
+           </div>
+          </div>
+    </div>
+   </div>   <div class="chart-grid">
+    <div class="chart-card wide">
+     <div class="chart-header" style="flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px"><span class="drag-handle" title="Arrastar"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg></span><span class="chart-title">Requisitos Levantados</span></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+       <span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.7px">Feature</span>
+       <select class="fselect" id="filterReqFeature" onchange="applyReqFilters()" style="min-width:110px;padding:4px 10px;font-size:11px">
+        <option value="">Todas</option>
+       </select>
+       <span class="freq">Quinzenal</span>
+      </div>
+     </div>
+     <div class="chart-wrap xl"><canvas id="cRequisitos"></canvas></div>
+    </div>
+   </div>
+   <!-- Lead Time de Requisitos -->
+   <div class="chart-grid">
+    <div class="chart-card wide">
+     <div class="chart-header" style="flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px"><span class="drag-handle" title="Arrastar"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg></span><span class="chart-title">Lead Time de Requisitos</span></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+       <span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.7px">Feature</span>
+       <select class="fselect" id="filterLTReqFeature" onchange="applyLTReqFilter()" style="min-width:110px;padding:4px 10px;font-size:11px">
+        <option value="">Todas</option>
+       </select>
+       <span style="display:flex;align-items:center;gap:10px;margin-left:4px">
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--accent)"><span style="width:10px;height:10px;border-radius:50%;background:rgba(88,166,255,.75);display:inline-block"></span>Dentro da meta</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--red)"><span style="width:10px;height:10px;border-radius:50%;background:rgba(248,81,73,.75);display:inline-block"></span>Acima da meta</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--yellow)"><span style="width:10px;height:10px;border-radius:50%;background:rgba(210,153,34,.65);display:inline-block"></span>Em andamento</span>
+       </span>
+       <span class="freq">Quinzenal</span>
+      </div>
+     </div>
+     <div class="chart-wrap xl"><canvas id="cLTRequisitos"></canvas></div>
+    </div>
+   </div>
+   <!-- HUs Priorizadas -->
+   <div class="chart-grid">
+    <div class="chart-card wide" draggable="true">
+     <div class="chart-header" style="flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px"><span class="drag-handle" title="Arrastar"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg></span><span class="chart-title">HUs Priorizadas</span></div>
+      <span class="freq">Quinzenal</span>
+     </div>
+     <div class="chart-wrap"><canvas id="cHUs"></canvas></div>
+    </div>
+   </div>
+   <!-- Capacity -->
+   <div class="chart-grid">
+    <div class="chart-card wide">
+     <div class="chart-header" style="flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px"><span class="drag-handle" title="Arrastar"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg></span><span class="chart-title">Capacity do Time por Sprint</span></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+       <span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.7px">Sprint</span>
+       <select class="fselect" id="filterCapSprint" onchange="applyCapFilter()" style="min-width:110px;padding:4px 10px;font-size:11px">
+        <option value="">Todas</option>
+       </select>
+       <div style="display:flex;align-items:center;gap:10px;margin-left:6px">
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--accent)"><span style="width:10px;height:10px;border-radius:2px;background:rgba(88,166,255,.85);display:inline-block"></span>Disponivel</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--yellow)"><span style="width:10px;height:10px;border-radius:2px;background:rgba(210,153,34,.85);display:inline-block"></span>Planejado</span>
+       </div>
+       <span class="freq">Por Sprint</span>
+      </div>
+     </div>
+     <div style="height:300px"><canvas id="cCapacity"></canvas></div>
+    </div>
+   </div>
+   <!-- Burndowns -->
+   <div class="chart-grid">
+    <div class="chart-card" draggable="true">
+     <div class="chart-header" style="flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px"><span class="drag-handle" title="Arrastar"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg></span><span class="chart-title">Burndown de Escrita de HUs</span></div>
+      <span class="freq">Quinzenal</span>
+     </div>
+     <div class="chart-wrap tall"><canvas id="cBurnEscrita"></canvas></div>
+    </div>
+    <div class="chart-card" draggable="true">
+     <div class="chart-header" style="flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px"><span class="drag-handle" title="Arrastar"><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/></svg></span><span class="chart-title">Burndown de Desenvolvimento de HUs</span></div>
+      <span class="freq">Quinzenal</span>
+     </div>
+     <div class="chart-wrap tall"><canvas id="cBurnDev"></canvas></div>
+    </div>
+    <div class="burn-legend">
+     <h3>Como ler os Burndowns</h3>
+     <div class="leg-grid">
+      <div class="leg-item"><div class="leg-line" style="background:var(--muted)"></div><div><div class="leg-lbl">Planejado</div><div class="leg-desc">HUs estimadas para o periodo</div></div></div>
+      <div class="leg-item"><div class="leg-line" style="background:var(--yellow)"></div><div><div class="leg-lbl">Tendencia Linear</div><div class="leg-desc">Ritmo ideal - fique abaixo</div></div></div>
+      <div class="leg-item"><div class="leg-line" style="background:var(--accent)"></div><div><div class="leg-lbl">Real</div><div class="leg-desc">HUs efetivamente concluidas</div></div></div>
+     </div>
+    </div>
+   </div>
+  </div>
+
+  <!-- BURNDOWN -->
+  
+
+  <!-- CONFIG -->
+  <!-- ROADMAP -->
+  <div id="roadmap" class="panel">
+   <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+    <span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.8px">Escala</span>
+    <div style="display:flex;gap:4px">
+     <button id="btnQuinzenal" onclick="setRoadmapScale('quinzenal')" style="padding:5px 14px;background:var(--accent);color:#0d1117;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Quinzenal</button>
+     <button id="btnMensal"    onclick="setRoadmapScale('mensal')"    style="padding:5px 14px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Mensal</button>
+    </div>
+    <div style="width:1px;height:20px;background:var(--border)"></div>
+    <span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.8px">Filtrar status</span>
+    <div style="display:flex;align-items:center;gap:6px">
+     <button id="rmBtnConcluido"  onclick="toggleRmStatus('concluido')"  style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surface2);color:var(--green);border:1px solid rgba(63,185,80,.4);border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s"><span style="width:8px;height:8px;border-radius:2px;background:rgba(63,185,80,.8);display:inline-block;flex-shrink:0"></span>Concluido</button>
+     <button id="rmBtnAndamento"  onclick="toggleRmStatus('andamento')"  style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surface2);color:var(--accent);border:1px solid rgba(88,166,255,.4);border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s"><span style="width:8px;height:8px;border-radius:2px;background:rgba(88,166,255,.8);display:inline-block;flex-shrink:0"></span>Em andamento</button>
+     <button id="rmBtnPlanejado"  onclick="toggleRmStatus('planejado')"  style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surface2);color:var(--muted);border:1px solid rgba(125,133,144,.4);border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s"><span style="width:8px;height:8px;border-radius:2px;background:rgba(125,133,144,.5);display:inline-block;flex-shrink:0"></span>Planejado</button>
+    </div>
+    <div id="rmActiveFilter" style="display:none;align-items:center;gap:6px;padding:3px 10px;background:rgba(88,166,255,.1);border:1px solid rgba(88,166,255,.3);border-radius:20px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--accent)">
+     <span id="rmActiveFilterLabel"></span>
+     <button onclick="clearRmStatus()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;padding:0;line-height:1;margin-left:2px">&times;</button>
+    </div>
+   </div>
+   <div id="roadmapContainer" style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 240px);border:1px solid var(--border);border-radius:10px;background:var(--surface)">
+    <div id="roadmapInner" style="min-width:800px"></div>
+   </div>
+  </div>
+
+  <div id="config" class="panel">
+   <!-- Settings Tabs -->
+   <div class="cfg-tabs">
+    <button class="cfg-tab active" onclick="switchCfgTab('cfgSettings',this)">Configuracoes dos Graficos</button>
+    <button class="cfg-tab" onclick="switchCfgTab('cfgGuia',this)">Como Configurar a Planilha</button>
+   </div>
+
+   <!-- Settings Panel -->
+   <div id="cfgSettings" class="cfg-panel active">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+     <div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.7">Habilite/desabilite graficos, personalize nomes e descreva como cada indicador deve ser lido.<br>As configuracoes sao salvas automaticamente no navegador.</p>
+      <p style="font-size:11px;color:var(--accent);line-height:1.7;margin-top:8px;padding:8px 12px;background:rgba(88,166,255,.1);border-radius:6px;border-left:3px solid var(--accent)">
+       <strong>💡 Para compartilhar suas configurações:</strong> Clique em "📥 Exportar Dashboard Configurado" para baixar um novo arquivo HTML com TODAS as suas personalizações (títulos, descrições, URL do Apps Script). Envie esse arquivo para outras pessoas - elas verão exatamente o que você configurou!
+      </p>
+     </div>
+     <div style="display:flex;align-items:center;gap:8px">
+      <button class="cfg-save-btn" onclick="saveCfgSettings()">Salvar e Aplicar</button>
+      <button class="cfg-save-btn" onclick="exportConfiguredDashboard()" style="background:var(--green)">📥 Exportar Dashboard Configurado</button>
+      <span class="cfg-saved" id="cfgSavedMsg">Salvo!</span>
+     </div>
+    </div>
+    <div id="cfgCardsWrap">
+     <div class="chart-cfg-card" id="cfgCard_kpi">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_kpi" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_kpi" value="KPIs do Projeto" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('kpi')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Sempre</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_kpi" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+     <div class="chart-cfg-card" id="cfgCard_homolog_pie">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_homolog_pie" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_homolog_pie" value="HUs em Homologacao" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('homolog_pie')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Quinzenal</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_homolog_pie" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+     <div class="chart-cfg-card" id="cfgCard_entregas">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_entregas" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_entregas" value="Entregas da Sprint vs Meta" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('entregas')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Quinzenal</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_entregas" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+     <div class="chart-cfg-card" id="cfgCard_retrabalho">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_retrabalho" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_retrabalho" value="% de Retrabalho" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('retrabalho')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Quinzenal</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_retrabalho" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+     <div class="chart-cfg-card" id="cfgCard_leadtime">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_leadtime" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_leadtime" value="Lead Time por HU" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('leadtime')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Por HU</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_leadtime" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+     <div class="chart-cfg-card" id="cfgCard_aging">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_aging" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_aging" value="Aging de HU por Sprint" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('aging')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Semanal</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_aging" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+     <div class="chart-cfg-card" id="cfgCard_reprovacao">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_reprovacao" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_reprovacao" value="% de Reprovacao em Homologacao" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('reprovacao')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Mensal</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_reprovacao" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+     <div class="chart-cfg-card" id="cfgCard_ltreq">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_ltreq" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_ltreq" value="Lead Time de Requisitos" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('ltreq')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Quinzenal</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_ltreq" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+     <div class="chart-cfg-card" id="cfgCard_hus">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_hus" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_hus" value="HUs Priorizadas" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('hus')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Quinzenal</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_hus" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+     <div class="chart-cfg-card" id="cfgCard_capacity">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_capacity" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_capacity" value="Capacity do Time por Sprint" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('capacity')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Por Sprint</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_capacity" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+     <div class="chart-cfg-card" id="cfgCard_burnescrita">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_burnescrita" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_burnescrita" value="Burndown de Escrita de HUs" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('burnescrita')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Quinzenal</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_burnescrita" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+     <div class="chart-cfg-card" id="cfgCard_burndev">
+      <div class="chart-cfg-top">
+       <label class="cfg-toggle"><input type="checkbox" id="cfgEnable_burndev" checked onchange="onCfgChange()"><span class="cfg-slider"></span></label>
+       <input type="text" class="cfg-name-input" id="cfgTitle_burndev" value="Burndown de Desenvolvimento de HUs" placeholder="Nome do grafico" oninput="onCfgChange()">
+       <button class="cfg-reset-btn" onclick="resetCfgItem('burndev')">Redefinir</button>
+       <span class="freq" style="flex-shrink:0">Quinzenal</span>
+      </div>
+      <div class="cfg-desc-label">Como ler este indicador</div>
+      <textarea class="cfg-desc-input" id="cfgDesc_burndev" rows="2" placeholder="Descreva como interpretar este grafico, suas formulas e metricas..." oninput="onCfgChange()"></textarea>
+     </div>
+    </div>
+   </div>
+
+   <!-- Guia Panel (existing guide moved here) -->
+   <div id="cfgGuia" class="cfg-panel">
+    <div class="guia-wrap">
+<div class="guia-wrap">
+    <div class="guia-header">
+     <h2>Como configurar a planilha e publicar online</h2>
+     <p>Google Sheets + Apps Script como fonte de dados - GitHub Pages para publicacao gratuita</p>
+    </div>
+
+    <div class="fase-card">
+     <div class="fase-header">
+      <span class="fase-badge" style="color:var(--green);background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.3)">PASSO 1</span>
+      <span class="fase-titulo">Criar as abas no Google Sheets</span>
+     </div>
+     <div class="passo"><span class="passo-num" style="color:var(--green)">1.</span><span class="passo-txt">Acesse <code>sheets.google.com</code> e crie uma nova planilha</span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--green)">2.</span><span class="passo-txt">Aba <strong>Sprints</strong> - cabecalhos na linha 1 (sem Lead Time, que fica em aba propria):</span></div>
+     <div class="sheet-preview">
+      <table class="model">
+       <tr><th>Sprint</th><th>Modulo</th><th>HUs_Entregues</th><th>HUs_Planejadas_Sprint</th><th>HUs_Reabertas</th><th>HUs_Entregues_Total</th><th>Aging_HU</th><th>HUs_Priorizadas</th></tr>
+       <tr><td>S1</td><td>Modulo A</td><td>9</td><td>13</td><td>4</td><td>14</td><td>18</td><td>5</td></tr>
+       <tr><td>S2</td><td>Modulo A</td><td>11</td><td>13</td><td>3</td><td>14</td><td>15</td><td>7</td></tr>
+      </table>
+     </div>
+     <div class="passo" style="margin-top:6px"><span class="passo-num" style="color:var(--muted)">!</span><span class="passo-txt" style="color:var(--muted)"><strong>Entregas_%</strong> = (HUs_Entregues / HUs_Planejadas_Sprint) x 100 — calculado automaticamente. <strong>Retrabalho_%</strong> = (HUs_Reabertas / HUs_Entregues_Total) x 100 — calculado automaticamente. <strong>Aging_HU</strong> = maior numero de dias que qualquer HU permaneceu no mesmo status (backlog → em desenvolvimento) na sprint.: (HUs_Entregues / HUs_Planejadas_Sprint) x 100. Nao e necessario inserir a coluna Entregas_% se preencher HUs_Entregues e HUs_Planejadas_Sprint.</span></div>
+     <div class="passo" style="margin-top:12px"><span class="passo-num" style="color:var(--green)">3.</span><span class="passo-txt">Aba <strong>LeadTime_HUs</strong> - cada linha e uma HU individual (sem vinculo com sprint):</span></div>
+     <div class="sheet-preview">
+      <table class="model">
+       <tr><th>HU</th><th>Modulo</th><th>Feature</th><th>Data_Inicio</th><th>Data_Aceite</th><th>LeadTime_dias</th></tr>
+       <tr><td>HU-001</td><td>Modulo A</td><td>Feature X</td><td>01/01/2025</td><td>15/01/2025</td><td>=DIAS(E2,D2)</td></tr>
+       <tr><td>HU-002</td><td>Modulo A</td><td>Feature Y</td><td>20/01/2025</td><td>10/03/2025</td><td>=DIAS(E3,D3)</td></tr>
+      </table>
+     </div>
+     <div class="passo" style="margin-top:10px"><span class="passo-num" style="color:var(--muted)">!</span><span class="passo-txt" style="color:var(--muted)">O eixo X do grafico usa <strong>Data_Aceite</strong>. Uma HU pode cruzar varias sprints sem problema. <strong>IMPORTANTE:</strong> Esta aba agora tambem alimenta o grafico "Requisitos Levantados" (mostra apenas HUs com Data_Aceite preenchida).</span></div>
+     <div class="passo" style="margin-top:12px"><span class="passo-num" style="color:var(--green)">4.</span><span class="passo-txt">Aba <strong>Retrabalho</strong> - indicador de HUs reabertas com agrupamento mensal:</span></div>
+     <div class="sheet-preview">
+      <table class="model">
+       <tr><th>Sprint</th><th>Modulo</th><th>Data_Entrega</th><th>HUs_Reabertas</th><th>HUs_Entregues_Total</th></tr>
+       <tr><td>S1</td><td>Modulo A</td><td>15/01/2025</td><td>4</td><td>14</td></tr>
+       <tr><td>S2</td><td>Modulo A</td><td>30/01/2025</td><td>3</td><td>14</td></tr>
+       <tr><td>S3</td><td>Modulo B</td><td>14/02/2025</td><td>2</td><td>13</td></tr>
+      </table>
+     </div>
+     <div class="passo" style="margin-top:6px"><span class="passo-num" style="color:var(--muted)">!</span><span class="passo-txt" style="color:var(--muted)"><strong>Data_Entrega:</strong> data de encerramento da sprint (obrigatoria) - usada para agrupar os dados por mes. <strong>% Retrabalho</strong> = (HUs_Reabertas ÷ HUs_Entregues_Total) × 100 — calculado automaticamente por mes no grafico. Sprints do mesmo mes sao somadas automaticamente. <strong>HUs_Reabertas:</strong> quantidade de HUs que precisaram ser reabertas apos entrega. <strong>HUs_Entregues_Total:</strong> total de HUs entregues na sprint.</span></div>
+     <div class="passo" style="margin-top:12px"><span class="passo-num" style="color:var(--green)">5.</span><span class="passo-txt">Aba <strong>Aging</strong> - indicador de tempo de estagnacao das HUs por sprint:</span></div>
+     <div class="sheet-preview">
+      <table class="model">
+       <tr><th>Sprint</th><th>Modulo</th><th>Aging_HU</th></tr>
+       <tr><td>S1</td><td>Modulo A</td><td>18</td></tr>
+       <tr><td>S2</td><td>Modulo A</td><td>15</td></tr>
+       <tr><td>S3</td><td>Modulo B</td><td>12</td></tr>
+      </table>
+     </div>
+     <div class="passo" style="margin-top:6px"><span class="passo-num" style="color:var(--muted)">!</span><span class="passo-txt" style="color:var(--muted)"><strong>Aging_HU:</strong> numero de dias que a HU permaneceu no mesmo status (de Backlog ate Em Desenvolvimento). <strong>Meta:</strong> <= 15 dias. <strong>Objetivo:</strong> Detectar atraso oculto por estagnacao no fluxo de trabalho. <strong>Periodicidade:</strong> Semanal (uma medicao por sprint/semana).</span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--green)">6.</span><span class="passo-txt">Aba <strong>Homologacao</strong> - apenas 2 linhas, uma por status, com o total de HUs:</span></div>
+     <div class="sheet-preview">
+      <table class="model">
+       <tr><th>Modulo</th><th>Status</th><th>Total</th></tr>
+       <tr><td>Modulo A</td><td>Em Homologacao</td><td>5</td></tr>
+       <tr><td>Modulo A</td><td>Disponivel para homologacao</td><td>3</td></tr>
+       <tr><td>Modulo A</td><td>Homologadas</td><td>18</td></tr>
+       <tr><td>Modulo A</td><td>Devolvidas</td><td>4</td></tr>
+       <tr><td>Modulo B</td><td>Em Homologacao</td><td>3</td></tr>
+       <tr><td>Modulo B</td><td>Disponivel para homologacao</td><td>2</td></tr>
+       <tr><td>Modulo B</td><td>Homologadas</td><td>12</td></tr>
+       <tr><td>Modulo B</td><td>Devolvidas</td><td>3</td></tr>
+      </table>
+     </div>
+     <div class="passo" style="margin-top:10px"><span class="passo-num" style="color:var(--green)">7.</span><span class="passo-txt">Aba <strong>Capacity</strong> - horas por funcao por sprint:</span></div>
+     <div class="sheet-preview">
+      <table class="model">
+       <tr><th>Sprint</th><th>Modulo</th><th>Funcao</th><th>Disponivel</th><th>Planejado</th></tr>
+       <tr><td>S1</td><td>Modulo A</td><td>Front-end</td><td>40</td><td>32</td></tr>
+       <tr><td>S1</td><td>Modulo A</td><td>Back-end</td><td>48</td><td>40</td></tr>
+       <tr><td>S1</td><td>Modulo B</td><td>QA</td><td>24</td><td>16</td></tr>
+      </table>
+     </div>
+     <div class="passo" style="margin-top:6px"><span class="passo-num" style="color:var(--muted)">!</span><span class="passo-txt" style="color:var(--muted)">Funcoes aceitas: <code>UX/UI</code>, <code>Banco de Dados</code>, <code>Requisitos</code>, <code>Front-end</code>, <code>Back-end</code>, <code>QA</code></span></div>
+     <div class="passo" style="margin-top:10px"><span class="passo-num" style="color:var(--green)">8.</span><span class="passo-txt">Aba <strong>Roadmap</strong> - estrutura de arvore do projeto (Modulo > Feature > HU):</span></div>
+     <div class="sheet-preview">
+      <table class="model">
+       <tr><th>Modulo</th><th>Feature</th><th>HU</th><th>Data_Inicio</th><th>Data_Fim</th><th>Status</th></tr>
+       <tr><td>Modulo A</td><td>Feature X</td><td>HU-001</td><td>05/01/2025</td><td>18/01/2025</td><td>Concluido</td></tr>
+       <tr><td>Modulo A</td><td>Feature X</td><td>HU-002</td><td>15/01/2025</td><td>28/01/2025</td><td>Concluido</td></tr>
+       <tr><td>Modulo A</td><td>Feature Y</td><td>HU-003</td><td>01/02/2025</td><td>20/02/2025</td><td>Em andamento</td></tr>
+       <tr><td>Modulo B</td><td>Feature Z</td><td>HU-004</td><td>10/02/2025</td><td>25/02/2025</td><td>Planejado</td></tr>
+      </table>
+     </div>
+     <div class="passo" style="margin-top:6px"><span class="passo-num" style="color:var(--muted)">!</span><span class="passo-txt" style="color:var(--muted)"><strong>Uma linha por HU.</strong> As barras de Modulo e Feature sao calculadas automaticamente pelo periodo das HUs filhas. Status aceitos: <code>Concluido</code>, <code>Em andamento</code>, <code>Planejado</code>. Sem Status = Planejado.</span></div>
+     <div class="passo" style="margin-top:10px"><span class="passo-num" style="color:var(--green)">9.</span><span class="passo-txt">Aba <strong>Burndown_Escrita</strong> - ritmo de escrita e refinamento de requisitos:</span></div>
+     <div class="sheet-preview">
+      <table class="model">
+       <tr><th>HU</th><th>Modulo</th><th>Feature</th><th>Data_Inicio</th><th>Data_Aceite</th></tr>
+       <tr><td>HU-001</td><td>Modulo A</td><td>Feature X</td><td>05/01/2025</td><td>10/01/2025</td></tr>
+       <tr><td>HU-002</td><td>Modulo A</td><td>Feature X</td><td>08/01/2025</td><td>15/01/2025</td></tr>
+       <tr><td>HU-003</td><td>Modulo B</td><td>Feature Y</td><td>12/01/2025</td><td>20/01/2025</td></tr>
+      </table>
+     </div>
+     <div class="passo" style="margin-top:6px"><span class="passo-num" style="color:var(--muted)">!</span><span class="passo-txt" style="color:var(--muted)"><strong>Objetivo:</strong> Avaliar ritmo de escrita e refinamento de requisitos. <strong>Periodicidade:</strong> Quinzenal (agrupamento automatico por Data_Aceite). <strong>Grafico:</strong> Comparacao entre HUs planejadas × HUs efetivamente escritas ao longo do tempo. Linha de tendencia linear mostra o ritmo ideal. HUs sao contadas apenas quando tem Data_Aceite preenchida (refinamento completo).</span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--green)">10.</span><span class="passo-txt">Aba <strong>Burndown_Dev</strong> - ritmo de desenvolvimento e previsibilidade:</span></div>
+     <div class="sheet-preview">
+      <table class="model">
+       <tr><th>Sprint</th><th>Modulo</th><th>HUs_Entregues</th><th>HUs_Planejadas_Sprint</th></tr>
+       <tr><td>S1</td><td>Modulo A</td><td>10</td><td>13</td></tr>
+       <tr><td>S2</td><td>Modulo A</td><td>11</td><td>13</td></tr>
+       <tr><td>S3</td><td>Modulo B</td><td>12</td><td>13</td></tr>
+      </table>
+     </div>
+     <div class="passo" style="margin-top:6px"><span class="passo-num" style="color:var(--muted)">!</span><span class="passo-txt" style="color:var(--muted)"><strong>Objetivo:</strong> Avaliar ritmo de desenvolvimento e previsibilidade. <strong>Periodicidade:</strong> Quinzenal (por sprint). <strong>Grafico:</strong> Colunas empilhadas mostrando HUs Entregues (verde) + HUs Restantes (cinza) por sprint. Total planejado = soma de todas as HUs_Planejadas_Sprint. Linha de tendencia linear (amarela) mostra o ritmo ideal. Meta: linha real abaixo da tendencia.</span></div>
+    </div>
+
+    <div class="fase-card">
+     <div class="fase-header">
+      <span class="fase-badge" style="color:var(--accent);background:rgba(88,166,255,.12);border:1px solid rgba(88,166,255,.3)">PASSO 2</span>
+      <span class="fase-titulo">Criar o Apps Script (ponte de dados)</span>
+     </div>
+     <div class="passo"><span class="passo-num" style="color:var(--accent)">1.</span><span class="passo-txt">Na planilha: <code>Extensoes &rarr; Apps Script</code></span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--accent)">2.</span><span class="passo-txt">Apague o codigo existente e cole o script abaixo:</span></div>
+     <div class="script-box" id="guiaScriptCode">function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var aba = e.parameter.aba || "Sprints";
+  var sheet = ss.getSheetByName(aba);
+  if (!sheet) return ContentService.createTextOutput("[]").setMimeType(ContentService.MimeType.JSON);
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var rows = data.slice(1).map(function(row) {
+    var obj = {};
+    headers.forEach(function(h, i) { obj[h] = row[i]; });
+    return obj;
+  });
+  var out = ContentService.createTextOutput(JSON.stringify(rows));
+  out.setMimeType(ContentService.MimeType.JSON);
+  return out;
+}</div>
+     <button class="copy-btn" id="guiaCopyBtn" onclick="copyGuiaScript()">Copiar codigo</button>
+     <div class="passo" style="margin-top:12px"><span class="passo-num" style="color:var(--accent)">3.</span><span class="passo-txt">Salvar &rarr; <strong>Implantar &rarr; Nova implantacao</strong></span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--accent)">4.</span><span class="passo-txt">Tipo: <code>App da Web</code> | Acesso: <code>Qualquer pessoa</code> &rarr; Implantar</span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--accent)">5.</span><span class="passo-txt">Copie a URL gerada (comeca com <code>https://script.google.com/macros/s/...</code>)</span></div>
+    </div>
+
+    <div class="fase-card">
+     <div class="fase-header">
+      <span class="fase-badge" style="color:var(--purple);background:rgba(188,140,255,.12);border:1px solid rgba(188,140,255,.3)">PASSO 3</span>
+      <span class="fase-titulo">Conectar ao Dashboard</span>
+     </div>
+     <div class="passo"><span class="passo-num" style="color:var(--purple)">1.</span><span class="passo-txt">Clique em <strong>Reconfigurar</strong> no canto superior direito</span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--purple)">2.</span><span class="passo-txt">Cole a URL do Apps Script e clique <strong>Conectar</strong></span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--purple)">3.</span><span class="passo-txt">Para salvar permanentemente: abra o <code>.html</code> no Bloco de Notas, localize <code>const URL_FIXA = ''</code> e cole a URL entre as aspas</span></div>
+    </div>
+
+    <div class="fase-card">
+     <div class="fase-header">
+      <span class="fase-badge" style="color:var(--yellow);background:rgba(210,153,34,.12);border:1px solid rgba(210,153,34,.3)">PASSO 4</span>
+      <span class="fase-titulo">Publicar Online - GitHub Pages (gratuito)</span>
+     </div>
+     <div class="passo"><span class="passo-num" style="color:var(--yellow)">1.</span><span class="passo-txt">Crie conta em <code>github.com</code> &rarr; New repository &rarr; nome: <code>dashboard-montreal</code> &rarr; Public &rarr; Create</span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--yellow)">2.</span><span class="passo-txt">Upload do arquivo, renomeie para <code>index.html</code> &rarr; Commit changes</span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--yellow)">3.</span><span class="passo-txt"><code>Settings &rarr; Pages &rarr; Branch: main &rarr; Save</code> &rarr; link ativo em ~2 min: <code>seunome.github.io/dashboard-montreal</code></span></div>
+    </div>
+
+    <div class="fase-card">
+     <div class="fase-header">
+      <span class="fase-badge" style="color:var(--green);background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.3)">ROTINA</span>
+      <span class="fase-titulo">Como atualizar os dados</span>
+     </div>
+     <div class="passo"><span class="passo-num" style="color:var(--green)">-</span><span class="passo-txt"><strong>Sprints:</strong> adicione uma linha nova a cada sprint encerrada</span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--green)">-</span><span class="passo-txt"><strong>LeadTime_HUs:</strong> adicione uma linha por HU aceita, com as datas reais</span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--green)">-</span><span class="passo-txt">O cliente recarrega a pagina e ja ve os dados atualizados automaticamente</span></div>
+     <div class="passo"><span class="passo-num" style="color:var(--green)">-</span><span class="passo-txt">Novo modulo: adicione o nome na coluna Modulo - o filtro aparece automaticamente</span></div>
+    </div>
+   </div>
+  </div>
+   </div>
+  </div>
+
+ </div>
+ <div class="footer">
+  <span>Fonte: Google Sheets - Dashboard Montreal / ASGE</span>
+  <span id="footerDate"></span>
+ </div>
+</div>
+
+<script>
+// =====================================================================
+// CONFIGURACAO PERMANENTE - cole sua URL aqui para nao pedir toda vez
+const URL_FIXA = '';
+// =====================================================================
+
+var _rawSprints = [], _rawLeadTime = [], _rawRequisitos = [], _rawHomolog = [], _rawCapacity = [], _rawRetrabalho = [], _rawAging = [], _rawEscrita = null, _rawDev = null;
+var _rawRoadmap = [];
+var _roadmapScale = 'quinzenal';
+var _roadmapStatusFilter = '';
+
+// ── Dashboard Settings (persisted in localStorage) ────────────────
+var _chartSettings = {};  // { id: { enabled, title, description } }
+var _CHART_DEFS = [["kpi", "KPIs do Projeto", "kpiGrid", "Sempre", "📌 O que é: Resumo executivo dos principais indicadores.\n📐 Como ler: Cada card mostra o valor atual (número grande), a meta de referência, a periodicidade e uma linha de tendência. Verde = dentro da meta. Vermelho = atenção necessária.\n💡 Dica: Comece sempre pelos cards vermelhos para priorizar ações."], ["homolog_pie", "HUs em Homologacao", "cHomologacao", "Quinzenal", "📌 O que é: Distribuição atual das HUs no processo de homologação.\n📐 Como ler: Pizza com 2 fatias — azul (Em Homologação) e verde (Disponível para Homologação). O número no centro é o total somado.\n📋 Fórmula: Total = Em Homologação + Disponível para Homologação.\n💡 Dica: Um alto volume \"Em Homologação\" por muitas sprints pode indicar gargalo no processo de aceite."], ["entregas", "Entregas da Sprint vs Meta", "cEntregas", "Quinzenal", "📌 O que é: Percentual de HUs entregues em relação às planejadas por sprint.\n📐 Como ler: Barras azuis = sprint atingiu a meta (≥ 80%). Barras vermelhas = sprint abaixo da meta. A linha tracejada marca a meta de 80%.\n📋 Fórmula: (HUs Entregues ÷ HUs Planejadas) × 100.\n💡 Dica: Padrão de barras vermelhas consecutivas indica problemas de planejamento ou capacidade."], ["retrabalho", "% de Retrabalho", "cRetrabalho", "Mensal", "📌 O que é: Volume de HUs que precisaram ser reabertas após entrega, agrupado por mês.\n📐 Como ler: Cada barra representa um mês (baseado na Data_Entrega). Barras vermelhas = HUs Reabertas. Barras verdes = HUs Entregues (total acumulado). O tooltip mostra o % de retrabalho calculado. Meta: ≤ 20%.\n📋 Fórmula: (HUs Reabertas ÷ HUs Entregues Total) × 100 por mês.\n💡 Dica: Alto retrabalho indica falhas nos critérios de aceite ou na qualidade dos requisitos."], ["leadtime", "Lead Time por HU", "cLeadTime", "Por HU", "📌 O que é: Tempo individual de cada HU desde o início até o aceite final.\n📐 Como ler: Eixo X = data de aceite. Eixo Y = dias de duração. Ponto azul = dentro da meta (≤ 30 dias). Ponto vermelho = acima da meta. Passe o mouse para ver detalhes da HU.\n📋 Fórmula: Data Aceite − Data Início (em dias).\n💡 Dica: Pontos isolados muito altos indicam HUs complexas ou bloqueadas."], ["aging", "Aging de HU", "cAging", "Semanal", "📌 O que é: Número de dias que as HUs permaneceram paradas no mesmo status (de Backlog até Em Desenvolvimento).\n📐 Como ler: Barras roxas = dentro da meta (≤ 15 dias). Barras vermelhas = acima da meta. A linha tracejada marca 15 dias.\n📋 Objetivo: Detectar atraso oculto por estagnação no fluxo de trabalho.\n💡 Dica: HUs com aging alto indicam bloqueios que precisam de atenção imediata."], ["reprovacao", "% de Reprovacao em Homologacao", "cReprovacao", "Mensal", "📌 O que é: Taxa de HUs devolvidas durante a homologação.\n📐 Como ler: Pizza com 2 fatias — verde (Homologadas com sucesso) e vermelho (Devolvidas). O percentual no centro indica a taxa de reprovação. Meta: ≤ 20%.\n📋 Fórmula: (Devolvidas ÷ (Homologadas + Devolvidas)) × 100.\n💡 Dica: Taxa crescente indica problemas nos critérios de aceite ou qualidade dos requisitos."], ["ltreq", "Lead Time de Requisitos", "cLTRequisitos", "Quinzenal", "📌 O que é: Tempo de levantamento de cada HU desde o início até o aceite do requisito.\n📐 Como ler: Eixo X = data de aceite do levantamento. Eixo Y = dias. Azul = dentro da meta (≤ 15 dias). Vermelho = acima. Amarelo = em andamento (sem aceite ainda).\n📋 Fórmula: Data_Aceite − Data_Inicio (em dias).\n💡 Dica: HUs amarelas com muitos dias indicam levantamentos em aberto há muito tempo."], ["hus", "HUs Priorizadas", "cHUs", "Quinzenal", "📌 O que é: Quantidade de HUs priorizadas para desenvolvimento por sprint.\n📐 Como ler: Cada barra representa uma sprint. A linha tracejada marca a meta de ≥ 4 HUs. Barras abaixo da linha indicam sprints com backlog insuficiente.\n📋 Meta: ≥ 4 HUs priorizadas por sprint.\n💡 Dica: Sprints com poucas HUs priorizadas podem indicar problemas no refinamento do backlog."], ["capacity", "Capacity do Time por Sprint", "cCapacity", "Por Sprint", "📌 O que é: Comparativo entre horas disponíveis e planejadas por função em cada sprint.\n📐 Como ler: Barras azuis = horas disponíveis. Barras amarelas = horas planejadas. Cada grupo é uma função (UX/UI, Front-end, etc.). O tooltip mostra % de utilização e horas livres.\n💡 Dica: Funções com planejado > disponível indicam sobrecarga. Use o filtro de Sprint para análise pontual."], ["burnescrita", "Burndown de Escrita de HUs", "cBurnEscrita", "Quinzenal", "📌 O que é: Ritmo de escrita e refinamento das HUs ao longo do tempo.\n📐 Como ler: 3 linhas — Planejado (tracejada cinza), Tendência Linear (pontilhada amarela) e Real (colorida). A linha Real deve ficar ABAIXO da Tendência Linear para indicar bom ritmo.\n📋 Meta: Linha Real abaixo da tendência linear.\n💡 Dica: Real acima da tendência indica atraso na escrita — revise a capacidade do time de requisitos."], ["burndev", "Burndown de Desenvolvimento de HUs", "cBurnDev", "Quinzenal", "📌 O que é: Ritmo de desenvolvimento das HUs por sprint ao longo do projeto.\n📐 Como ler: Igual ao Burndown de Escrita. A linha Real deve ficar ABAIXO da Tendência Linear para indicar que o desenvolvimento está no ritmo ou à frente.\n📋 Meta: Linha Real abaixo da tendência linear.\n💡 Dica: Real acima da tendência indica que o time está atrasado — verifique impedimentos técnicos."]];
+function loadChartSettings() {
+  var saved = localStorage.getItem('dashboardChartSettings');
+  if (saved) { try { _chartSettings = JSON.parse(saved); } catch(e){} }
+  _CHART_DEFS.forEach(function(def) {
+    var id = def[0];
+    if (!_chartSettings[id]) _chartSettings[id] = {};
+    if (_chartSettings[id].enabled === undefined) _chartSettings[id].enabled = true;
+    if (!_chartSettings[id].title) _chartSettings[id].title = def[1];
+    if (!_chartSettings[id].description) _chartSettings[id].description = def[4];
+  });
+}
+
+function saveChartSettings() {
+  localStorage.setItem('dashboardChartSettings', JSON.stringify(_chartSettings));
+}
+
+// ── Exportar Dashboard com Configurações Embutidas ───
+function exportConfiguredDashboard() {
+  // Confirmar ação
+  if (!confirm('Isso vai gerar um novo arquivo HTML com TODAS as suas configurações embutidas (títulos, descrições, URL do Apps Script).\n\nQuando outras pessoas abrirem esse arquivo, verão exatamente o que você configurou.\n\nDeseja continuar?')) {
+    return;
+  }
+  
+  // Salvar configurações atuais primeiro
+  saveCfgSettings();
+  
+  // Pegar HTML da página atual
+  var htmlContent = document.documentElement.outerHTML;
+  
+  // 1. Substituir _CHART_DEFS com configurações personalizadas
+  var newChartDefs = [];
+  _CHART_DEFS.forEach(function(def) {
+    var id = def[0];
+    var settings = _chartSettings[id] || {};
+    var title = settings.title || def[1];
+    var desc = settings.description || def[4];
+    
+    // Escapar aspas na descrição
+    desc = desc.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    title = title.replace(/"/g, '\\"');
+    
+    newChartDefs.push('[\"' + id + '\", \"' + title + '\", \"' + def[2] + '\", \"' + def[3] + '\", \"' + desc + '\"]');
+  });
+  
+  var newChartDefsStr = '[' + newChartDefs.join(', ') + ']';
+  
+  // Encontrar e substituir _CHART_DEFS
+  var chartDefsRegex = /var _CHART_DEFS = \[.*?\]\];/s;
+  htmlContent = htmlContent.replace(chartDefsRegex, 'var _CHART_DEFS = ' + newChartDefsStr + ';');
+  
+  // 2. Substituir URL do Apps Script se configurada
+  var scriptUrl = localStorage.getItem('dashboardScriptUrl');
+  if (scriptUrl) {
+    var urlRegex = /localStorage\.getItem\('dashboardScriptUrl'\);[\s\S]*?if \(saved\) \{ url = saved; \}/;
+    var replacement = 'localStorage.getItem(\'dashboardScriptUrl\');\n  var url = \'' + scriptUrl + '\';\n  if (saved) { url = saved; }';
+    htmlContent = htmlContent.replace(urlRegex, replacement);
+  }
+  
+  // 3. Garantir que arquivo exportado sempre abre em "Visão Geral"
+  // Remover 'active' de todos os botões de aba
+  htmlContent = htmlContent.replace(/(<button class="tab) active(" id="tabOverview")/g, '$1$2');
+  htmlContent = htmlContent.replace(/(<button class="tab) active(" id="tabRoadmap")/g, '$1$2');
+  htmlContent = htmlContent.replace(/(<button class="tab) active(" id="tabConfig")/g, '$1$2');
+  // Adicionar 'active' apenas em tabOverview
+  htmlContent = htmlContent.replace(/(<button class="tab")(id="tabOverview")/, '<button class="tab active" $2');
+  
+  // Remover 'active' de todos os painéis
+  htmlContent = htmlContent.replace(/(<div id="overview" class="panel) active(")/g, '$1$2');
+  htmlContent = htmlContent.replace(/(<div id="roadmap" class="panel) active(")/g, '$1$2');
+  htmlContent = htmlContent.replace(/(<div id="config" class="panel) active(")/g, '$1$2');
+  // Adicionar 'active' apenas em overview
+  htmlContent = htmlContent.replace(/(<div id="overview" class="panel")/, '<div id="overview" class="panel active"');
+  
+  // 4. Criar arquivo e download
+  var blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  
+  // Nome do arquivo com data
+  var hoje = new Date();
+  var dataStr = hoje.getFullYear() + '-' + 
+                String(hoje.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(hoje.getDate()).padStart(2, '0');
+  link.download = 'dashboard_montreal_configurado_' + dataStr + '.html';
+  
+  // Trigger download
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+  
+  alert('✅ Dashboard exportado com sucesso!\n\nEnvie o arquivo baixado para outras pessoas.\nQuando elas abrirem, verão suas configurações personalizadas.');
+}
+
+
+function getChartTitle(id) {
+  loadChartSettings();
+  return (_chartSettings[id] && _chartSettings[id].title) || (_CHART_DEFS.find(function(d){return d[0]===id;}) || ['',''])[1];
+}
+
+function isChartEnabled(id) {
+  loadChartSettings();
+  return _chartSettings[id] ? _chartSettings[id].enabled !== false : true;
+}
+
+function applyChartVisibility() {
+  // KPI grid wrapper
+  var kpiWrap = document.querySelector('[id="kpiGrid"]') ? document.querySelector('[id="kpiGrid"]').closest('[style*="grid-template-columns:1fr auto"]') : null;
+  if (kpiWrap) kpiWrap.style.display = isChartEnabled('kpi') ? '' : 'none';
+  // Homologacao card (inside KPI wrapper)
+  var homCard = document.querySelector('[id="cHomologacao"]') ? document.querySelector('[id="cHomologacao"]').closest('.kpi-card') : null;
+  if (homCard) homCard.style.display = isChartEnabled('homolog_pie') ? '' : 'none';
+  // All canvas-based charts
+  var canvasMap = {entregas:'cEntregas',leadtime:'cLeadTime',aging:'cAging',reprovacao:'cReprovacao',ltreq:'cLTRequisitos',hus:'cHUs',capacity:'cCapacity',burnescrita:'cBurnEscrita',burndev:'cBurnDev'};
+  Object.keys(canvasMap).forEach(function(id) {
+    var el = document.getElementById(canvasMap[id]);
+    if (!el) return;
+    var card = el.closest('.chart-card') || el.closest('.kpi-card') || el.parentElement;
+    // Go up to find chart-card or chart-grid
+    var wrap = el;
+    for (var i = 0; i < 5; i++) {
+      if (!wrap.parentElement) break;
+      wrap = wrap.parentElement;
+      if (wrap.classList && (wrap.classList.contains('chart-card') || wrap.classList.contains('chart-grid'))) break;
+    }
+    // Find chart-grid parent of chart-card
+    var cardEl = el;
+    for (var j = 0; j < 4; j++) {
+      if (!cardEl.parentElement) break;
+      cardEl = cardEl.parentElement;
+      if (cardEl.classList && cardEl.classList.contains('chart-card')) { break; }
+    }
+    if (cardEl && cardEl.classList && cardEl.classList.contains('chart-card')) {
+      cardEl.style.display = isChartEnabled(id) ? '' : 'none';
+    }
+  });
+}
+
+function applyChartTitles() {
+  var titleMap = {
+    entregas:'cEntregas', leadtime:'cLeadTime', aging:'cAging',
+    reprovacao:'cReprovacao', ltreq:'cLTRequisitos',
+    hus:'cHUs', capacity:'cCapacity', burnescrita:'cBurnEscrita', burndev:'cBurnDev',
+    kpi:'kpiGrid', homolog_pie:'cHomologacao'
+  };
+  _CHART_DEFS.forEach(function(def) {
+    var id = def[0], title = getChartTitle(id);
+    // Find chart-title span near this canvas
+    var canvasId = titleMap[id];
+    var el = canvasId ? document.getElementById(canvasId) : null;
+    if (!el) return;
+    var card = el;
+    for (var i = 0; i < 6; i++) {
+      if (!card.parentElement) break;
+      card = card.parentElement;
+      var titleEl = card.querySelector('.chart-title');
+      if (titleEl) { titleEl.textContent = title; break; }
+    }
+  });
+}
+
+var C = {
+  accent:'#58a6ff', green:'#3fb950', red:'#f85149',
+  yellow:'#d29922', purple:'#bc8cff', muted:'#7d8590',
+  border:'#21262d', surface:'#161b22', text:'#e6edf3'
+};
+
+var TT = {
+  backgroundColor: C.surface, borderColor: C.border, borderWidth: 1,
+  titleColor: C.text, bodyColor: C.muted, padding: 10, cornerRadius: 8
+};
+
+// ── Global normalize utility — strips accents, lowercase, trim ───────
+function normStr(s) {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+}
+
+Chart.defaults.color = C.muted;
+Chart.defaults.borderColor = C.border;
+Chart.defaults.font.family = "'IBM Plex Sans', sans-serif";
+
+document.getElementById('footerDate').textContent = 'Atualizado: ' + new Date().toLocaleDateString('pt-BR');
+
+// ── UI helpers ─────────────────────────────────────────────────────────
+// ── Verificação de senha para aba Como Configurar ───
+var configTabUnlocked = false;
+
+async function hashPassword(password) {
+  var encoder = new TextEncoder();
+  var data = encoder.encode(password);
+  var hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  var hashArray = Array.from(new Uint8Array(hashBuffer));
+  var hashHex = hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+  return hashHex;
+}
+
+async function checkConfigPassword(id, btn) {
+  if (id === 'config' && !configTabUnlocked) {
+    var password = prompt('Digite a senha para acessar as configurações:');
+    if (!password) return;
+    
+    var inputHash = await hashPassword(password);
+    // Hash SHA-256 de "S@p123"
+    var storedHash = '94b4351a81073d0074a4a1422d2bd2d03c47f2163d13071b9bbad9acc172255d';
+    
+    if (inputHash === storedHash) {
+      configTabUnlocked = true;
+      switchTab(id, btn);
+    } else {
+      alert('Senha incorreta!');
+    }
+  } else {
+    switchTab(id, btn);
+  }
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function showSetup() {
+  var saved = localStorage.getItem('dashboardScriptUrl');
+  if (saved) document.getElementById('inputScriptUrl').value = saved;
+  document.getElementById('setupOverlay').style.display = 'flex';
+}
+
+function forgetUrl() {
+  localStorage.removeItem('dashboardScriptUrl');
+  document.getElementById('inputScriptUrl').value = '';
+  alert('URL removida. Cole uma nova URL para reconectar.');
+}
+
+function copyModalScript() {
+  var txt = document.getElementById('modalScriptCode').textContent;
+  navigator.clipboard.writeText(txt).then(function() {
+    var b = document.getElementById('modalCopyBtn');
+    b.textContent = 'Copiado!';
+    setTimeout(function(){ b.textContent = 'Copiar codigo'; }, 2000);
+  });
+}
+
+function copyGuiaScript() {
+  var txt = document.getElementById('guiaScriptCode').textContent;
+  navigator.clipboard.writeText(txt).then(function() {
+    var b = document.getElementById('guiaCopyBtn');
+    b.textContent = 'Copiado!';
+    setTimeout(function(){ b.textContent = 'Copiar codigo'; }, 2000);
+  });
+}
+
+// ── Fetch via Apps Script ──────────────────────────────────────────────
+function fetchAba(baseUrl, aba) {
+  var url = baseUrl + (baseUrl.indexOf('?') >= 0 ? '&' : '?') + 'aba=' + encodeURIComponent(aba);
+  return fetch(url).then(function(res) {
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  });
+}
+
+function loadFromScript() {
+  var url = document.getElementById('inputScriptUrl').value.trim();
+  if (!url || url.indexOf('script.google.com') < 0) {
+    alert('Cole a URL do Apps Script (comeca com https://script.google.com/macros/s/...)');
+    return;
+  }
+  localStorage.setItem('dashboardScriptUrl', url);
+  document.getElementById('setupOverlay').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+
+  var ltRows = [], homologRows = [], capacityRows = [], retrabalhoRows = [], agingRows = [], escritaRows = null, devRows = null;
+
+  fetchAba(url, 'Sprints').then(function(sprints) {
+    return fetchAba(url, 'LeadTime_HUs').then(function(lt) {
+      ltRows = lt;
+    }).catch(function(){}).then(function() {
+      return fetchAba(url, 'Burndown_Escrita').then(function(e) {
+        escritaRows = e;
+      }).catch(function(){});
+    }).then(function() {
+      return fetchAba(url, 'Burndown_Dev').then(function(d) {
+        devRows = d;
+      }).catch(function(){});
+    }).then(function() {
+      return fetchAba(url, 'Homologacao').then(function(h) {
+        homologRows = h;
+      }).catch(function(){});
+    }).then(function() {
+      return fetchAba(url, 'Capacity').then(function(cp) {
+        capacityRows = cp;
+      }).catch(function(){});
+    }).then(function() {
+      return fetchAba(url, 'Retrabalho').then(function(rt) {
+        retrabalhoRows = rt;
+      }).catch(function(){});
+    }).then(function() {
+      return fetchAba(url, 'Aging').then(function(ag) {
+        agingRows = ag;
+      }).catch(function(){});
+    }).then(function() {
+      return fetchAba(url, 'Roadmap').then(function(rd) {
+        _rawRoadmap = rd;
+      }).catch(function(){});
+    }).then(function() {
+      document.getElementById('loading').style.display = 'none';
+      _rawSprints = sprints; _rawLeadTime = ltRows; _rawRequisitos = ltRows;
+      _rawHomolog = homologRows; _rawCapacity = capacityRows; _rawRetrabalho = retrabalhoRows; _rawAging = agingRows;
+      _rawEscrita = escritaRows; _rawDev = devRows;
+      populateFilters(sprints);
+      renderAll(sprints, ltRows, ltRows, homologRows, capacityRows, retrabalhoRows, agingRows, escritaRows, devRows);
+      document.getElementById('filterBar').style.display = 'flex';
+      document.getElementById('lastUpdate').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
+      applyChartVisibility();
+      applyChartTitles();
+      initDragDrop();
+      switchTab('overview', document.getElementById('tabOverview'));
+    });
+  }).catch(function(e) {
+    document.getElementById('loading').innerHTML =
+      '<div style="text-align:center;padding:60px 20px">' +
+      '<p style="color:var(--red);font-size:14px;font-weight:700;margin-bottom:10px">Erro ao conectar</p>' +
+      '<p style="color:var(--muted);font-size:12px;max-width:400px;margin:0 auto;line-height:1.8">' + e.message + '<br><br>Verifique se a URL esta correta e se o acesso e "Qualquer pessoa".</p>' +
+      '<button onclick="showSetup()" style="margin-top:20px;padding:10px 20px;background:var(--accent);color:#0d1117;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">Voltar</button>' +
+      '</div>';
+  });
+}
+
+// ── Demo data ──────────────────────────────────────────────────────────
+function loadDemo() {
+  document.getElementById('setupOverlay').style.display = 'none';
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('topbarSub').textContent = 'Azure DevOps - Projeto ASGE - Dados de demonstracao';
+  document.getElementById('lastUpdate').textContent = 'Demonstracao';
+
+  var sprints = [
+    {Sprint:'S1',Modulo:'Modulo A',HUs_Entregues:9, HUs_Planejadas_Sprint:13,HUs_Reabertas:4,HUs_Entregues_Total:14,Aging_HU:18,HUs_Priorizadas:5},
+    {Sprint:'S2',Modulo:'Modulo A',HUs_Entregues:11,HUs_Planejadas_Sprint:13,HUs_Reabertas:3,HUs_Entregues_Total:14,Aging_HU:15,HUs_Priorizadas:7},
+    {Sprint:'S3',Modulo:'Modulo A',HUs_Entregues:12,HUs_Planejadas_Sprint:13,HUs_Reabertas:2,HUs_Entregues_Total:14,Aging_HU:12,HUs_Priorizadas:6},
+    {Sprint:'S4',Modulo:'Modulo B',HUs_Entregues:10,HUs_Planejadas_Sprint:13,HUs_Reabertas:3,HUs_Entregues_Total:13,Aging_HU:10,HUs_Priorizadas:8},
+    {Sprint:'S5',Modulo:'Modulo B',HUs_Entregues:11,HUs_Planejadas_Sprint:13,HUs_Reabertas:2,HUs_Entregues_Total:13,Aging_HU:8, HUs_Priorizadas:9},
+    {Sprint:'S6',Modulo:'Modulo B',HUs_Entregues:11,HUs_Planejadas_Sprint:13,HUs_Reabertas:1,HUs_Entregues_Total:12,Aging_HU:6, HUs_Priorizadas:10}
+  ];
+  var ltHUs = [
+    {HU:'HU-001',Modulo:'Modulo A',Feature:'Feature X',Data_Aceite:'2025-01-15',LeadTime_dias:35},
+    {HU:'HU-002',Modulo:'Modulo A',Feature:'Feature X',Data_Aceite:'2025-01-22',LeadTime_dias:42},
+    {HU:'HU-003',Modulo:'Modulo A',Feature:'Feature X',Data_Aceite:'2025-02-03',LeadTime_dias:28},
+    {HU:'HU-004',Modulo:'Modulo A',Feature:'Feature Y',Data_Aceite:'2025-02-14',LeadTime_dias:19},
+    {HU:'HU-005',Modulo:'Modulo A',Feature:'Feature Y',Data_Aceite:'2025-02-28',LeadTime_dias:38},
+    {HU:'HU-006',Modulo:'Modulo A',Feature:'Feature Y',Data_Aceite:'2025-03-10',LeadTime_dias:25},
+    {HU:'HU-007',Modulo:'Modulo A',Feature:'Feature Y',Data_Aceite:'2025-03-25',LeadTime_dias:18},
+    {HU:'HU-008',Modulo:'Modulo A',Feature:'Feature Y',Data_Aceite:'2025-04-05',LeadTime_dias:33},
+    {HU:'HU-009',Modulo:'Modulo B',Feature:'Feature Y',Data_Aceite:'2025-02-10',LeadTime_dias:22},
+    {HU:'HU-010',Modulo:'Modulo B',Feature:'Feature Y',Data_Aceite:'2025-02-25',LeadTime_dias:45},
+    {HU:'HU-011',Modulo:'Modulo B',Feature:'Feature Z',Data_Aceite:'2025-03-08',LeadTime_dias:17},
+    {HU:'HU-012',Modulo:'Modulo B',Feature:'Feature Z',Data_Aceite:'2025-03-20',LeadTime_dias:31},
+    {HU:'HU-013',Modulo:'Modulo B',Feature:'Feature Z',Data_Aceite:'2025-04-01',LeadTime_dias:14},
+    {HU:'HU-014',Modulo:'Modulo B',Feature:'Feature Z',Data_Aceite:'2025-04-12',LeadTime_dias:29},
+    {HU:'HU-015',Modulo:'Modulo B',Feature:'Feature Z',Data_Aceite:'2025-04-22',LeadTime_dias:36}
+  ];
+  var escrita = [
+    {HU:'HU-001',Modulo:'Modulo A',Feature:'Feature X',Data_Inicio:'2025-01-05',Data_Aceite:'2025-01-10'},
+    {HU:'HU-002',Modulo:'Modulo A',Feature:'Feature X',Data_Inicio:'2025-01-08',Data_Aceite:'2025-01-15'},
+    {HU:'HU-003',Modulo:'Modulo A',Feature:'Feature X',Data_Inicio:'2025-01-12',Data_Aceite:'2025-01-20'},
+    {HU:'HU-004',Modulo:'Modulo A',Feature:'Feature Y',Data_Inicio:'2025-01-15',Data_Aceite:'2025-01-25'},
+    {HU:'HU-005',Modulo:'Modulo A',Feature:'Feature Y',Data_Inicio:'2025-01-20',Data_Aceite:'2025-02-01'},
+    {HU:'HU-006',Modulo:'Modulo A',Feature:'Feature Y',Data_Inicio:'2025-01-25',Data_Aceite:'2025-02-05'},
+    {HU:'HU-007',Modulo:'Modulo B',Feature:'Feature Z',Data_Inicio:'2025-02-01',Data_Aceite:'2025-02-10'},
+    {HU:'HU-008',Modulo:'Modulo B',Feature:'Feature Z',Data_Inicio:'2025-02-05',Data_Aceite:'2025-02-15'},
+    {HU:'HU-009',Modulo:'Modulo B',Feature:'Feature W',Data_Inicio:'2025-02-10',Data_Aceite:'2025-02-20'},
+    {HU:'HU-010',Modulo:'Modulo B',Feature:'Feature W',Data_Inicio:'2025-02-15',Data_Aceite:'2025-02-25'},
+    {HU:'HU-011',Modulo:'Modulo B',Feature:'Feature W',Data_Inicio:'2025-02-20',Data_Aceite:'2025-03-01'},
+    {HU:'HU-012',Modulo:'Modulo B',Feature:'Feature W',Data_Inicio:'2025-02-25',Data_Aceite:'2025-03-05'}
+  ];
+  var dev = [
+    {Sprint:'S1',Modulo:'Modulo A',HUs_Entregues:10,HUs_Planejadas_Sprint:13},
+    {Sprint:'S2',Modulo:'Modulo A',HUs_Entregues:11,HUs_Planejadas_Sprint:13},
+    {Sprint:'S3',Modulo:'Modulo A',HUs_Entregues:12,HUs_Planejadas_Sprint:13},
+    {Sprint:'S4',Modulo:'Modulo B',HUs_Entregues:9,HUs_Planejadas_Sprint:13},
+    {Sprint:'S5',Modulo:'Modulo B',HUs_Entregues:10,HUs_Planejadas_Sprint:13},
+    {Sprint:'S6',Modulo:'Modulo B',HUs_Entregues:11,HUs_Planejadas_Sprint:13}
+  ];
+
+  var homologData = [
+    {Modulo:'Modulo A',Status:'Em Homologacao',              Total:5},
+    {Modulo:'Modulo A',Status:'Disponivel para homologacao', Total:3},
+    {Modulo:'Modulo A',Status:'Homologadas',                 Total:18},
+    {Modulo:'Modulo A',Status:'Devolvidas',                  Total:4},
+    {Modulo:'Modulo B',Status:'Em Homologacao',              Total:3},
+    {Modulo:'Modulo B',Status:'Disponivel para homologacao', Total:2},
+    {Modulo:'Modulo B',Status:'Homologadas',                 Total:12},
+    {Modulo:'Modulo B',Status:'Devolvidas',                  Total:3}
+  ];
+  var capacityData = [
+    {Sprint:'S1',Modulo:'Modulo A',Funcao:'UX/UI',         Disponivel:24, Planejado:16},
+    {Sprint:'S1',Modulo:'Modulo A',Funcao:'Banco de Dados',Disponivel:16, Planejado:8},
+    {Sprint:'S1',Modulo:'Modulo A',Funcao:'Requisitos',    Disponivel:20, Planejado:12},
+    {Sprint:'S1',Modulo:'Modulo A',Funcao:'Front-end',     Disponivel:40, Planejado:32},
+    {Sprint:'S1',Modulo:'Modulo A',Funcao:'Back-end',      Disponivel:48, Planejado:40},
+    {Sprint:'S1',Modulo:'Modulo A',Funcao:'QA',            Disponivel:24, Planejado:16},
+    {Sprint:'S2',Modulo:'Modulo A',Funcao:'UX/UI',         Disponivel:16, Planejado:8},
+    {Sprint:'S2',Modulo:'Modulo A',Funcao:'Banco de Dados',Disponivel:24, Planejado:16},
+    {Sprint:'S2',Modulo:'Modulo A',Funcao:'Requisitos',    Disponivel:24, Planejado:20},
+    {Sprint:'S2',Modulo:'Modulo A',Funcao:'Front-end',     Disponivel:48, Planejado:40},
+    {Sprint:'S2',Modulo:'Modulo A',Funcao:'Back-end',      Disponivel:56, Planejado:48},
+    {Sprint:'S2',Modulo:'Modulo A',Funcao:'QA',            Disponivel:32, Planejado:24},
+    {Sprint:'S3',Modulo:'Modulo A',Funcao:'UX/UI',         Disponivel:32, Planejado:24},
+    {Sprint:'S3',Modulo:'Modulo A',Funcao:'Banco de Dados',Disponivel:16, Planejado:8},
+    {Sprint:'S3',Modulo:'Modulo A',Funcao:'Requisitos',    Disponivel:24, Planejado:16},
+    {Sprint:'S3',Modulo:'Modulo A',Funcao:'Front-end',     Disponivel:40, Planejado:36},
+    {Sprint:'S3',Modulo:'Modulo A',Funcao:'Back-end',      Disponivel:48, Planejado:44},
+    {Sprint:'S3',Modulo:'Modulo A',Funcao:'QA',            Disponivel:24, Planejado:20},
+    {Sprint:'S4',Modulo:'Modulo B',Funcao:'UX/UI',         Disponivel:16, Planejado:12},
+    {Sprint:'S4',Modulo:'Modulo B',Funcao:'Banco de Dados',Disponivel:16, Planejado:12},
+    {Sprint:'S4',Modulo:'Modulo B',Funcao:'Requisitos',    Disponivel:32, Planejado:24},
+    {Sprint:'S4',Modulo:'Modulo B',Funcao:'Front-end',     Disponivel:40, Planejado:32},
+    {Sprint:'S4',Modulo:'Modulo B',Funcao:'Back-end',      Disponivel:40, Planejado:36},
+    {Sprint:'S4',Modulo:'Modulo B',Funcao:'QA',            Disponivel:24, Planejado:16},
+    {Sprint:'S5',Modulo:'Modulo B',Funcao:'UX/UI',         Disponivel:24, Planejado:20},
+    {Sprint:'S5',Modulo:'Modulo B',Funcao:'Banco de Dados',Disponivel:24, Planejado:16},
+    {Sprint:'S5',Modulo:'Modulo B',Funcao:'Requisitos',    Disponivel:16, Planejado:12},
+    {Sprint:'S5',Modulo:'Modulo B',Funcao:'Front-end',     Disponivel:48, Planejado:44},
+    {Sprint:'S5',Modulo:'Modulo B',Funcao:'Back-end',      Disponivel:56, Planejado:52},
+    {Sprint:'S5',Modulo:'Modulo B',Funcao:'QA',            Disponivel:32, Planejado:28},
+    {Sprint:'S6',Modulo:'Modulo B',Funcao:'UX/UI',         Disponivel:24, Planejado:16},
+    {Sprint:'S6',Modulo:'Modulo B',Funcao:'Banco de Dados',Disponivel:16, Planejado:8},
+    {Sprint:'S6',Modulo:'Modulo B',Funcao:'Requisitos',    Disponivel:24, Planejado:16},
+    {Sprint:'S6',Modulo:'Modulo B',Funcao:'Front-end',     Disponivel:48, Planejado:40},
+    {Sprint:'S6',Modulo:'Modulo B',Funcao:'Back-end',      Disponivel:56, Planejado:48},
+    {Sprint:'S6',Modulo:'Modulo B',Funcao:'QA',            Disponivel:32, Planejado:24}
+  ];
+  var retrabalhoData = [
+    {Sprint:'S1',Modulo:'Modulo A',Data_Entrega:'2025-01-15',HUs_Reabertas:4,HUs_Entregues_Total:14},
+    {Sprint:'S2',Modulo:'Modulo A',Data_Entrega:'2025-01-30',HUs_Reabertas:3,HUs_Entregues_Total:14},
+    {Sprint:'S3',Modulo:'Modulo A',Data_Entrega:'2025-02-14',HUs_Reabertas:2,HUs_Entregues_Total:14},
+    {Sprint:'S4',Modulo:'Modulo B',Data_Entrega:'2025-02-28',HUs_Reabertas:3,HUs_Entregues_Total:13},
+    {Sprint:'S5',Modulo:'Modulo B',Data_Entrega:'2025-03-15',HUs_Reabertas:2,HUs_Entregues_Total:13},
+    {Sprint:'S6',Modulo:'Modulo B',Data_Entrega:'2025-03-31',HUs_Reabertas:1,HUs_Entregues_Total:12}
+  ];
+  var agingData = [
+    {Sprint:'S1',Modulo:'Modulo A',Aging_HU:18},
+    {Sprint:'S2',Modulo:'Modulo A',Aging_HU:15},
+    {Sprint:'S3',Modulo:'Modulo A',Aging_HU:12},
+    {Sprint:'S4',Modulo:'Modulo B',Aging_HU:6},
+    {Sprint:'S5',Modulo:'Modulo B',Aging_HU:10},
+    {Sprint:'S6',Modulo:'Modulo B',Aging_HU:8}
+  ];
+  var roadmapData = [
+    {Modulo:'Modulo A', Feature:'Feature X', HU:'HU-001', Data_Inicio:'2025-01-05', Data_Fim:'2025-01-18', Status:'Concluido'},
+    {Modulo:'Modulo A', Feature:'Feature X', HU:'HU-002', Data_Inicio:'2025-01-15', Data_Fim:'2025-01-28', Status:'Concluido'},
+    {Modulo:'Modulo A', Feature:'Feature X', HU:'HU-003', Data_Inicio:'2025-02-01', Data_Fim:'2025-02-20', Status:'Concluido'},
+    {Modulo:'Modulo A', Feature:'Feature Y', HU:'HU-004', Data_Inicio:'2025-02-15', Data_Fim:'2025-03-05', Status:'Concluido'},
+    {Modulo:'Modulo A', Feature:'Feature Y', HU:'HU-005', Data_Inicio:'2025-03-01', Data_Fim:'2025-03-20', Status:'Em andamento'},
+    {Modulo:'Modulo A', Feature:'Feature Y', HU:'HU-006', Data_Inicio:'2025-03-15', Data_Fim:'2025-04-10', Status:'Planejado'},
+    {Modulo:'Modulo A', Feature:'Feature Y', HU:'HU-007', Data_Inicio:'2025-04-05', Data_Fim:'2025-04-30', Status:'Planejado'},
+    {Modulo:'Modulo B', Feature:'Feature Z', HU:'HU-008', Data_Inicio:'2025-02-01', Data_Fim:'2025-02-20', Status:'Concluido'},
+    {Modulo:'Modulo B', Feature:'Feature Z', HU:'HU-009', Data_Inicio:'2025-02-15', Data_Fim:'2025-03-10', Status:'Concluido'},
+    {Modulo:'Modulo B', Feature:'Feature Z', HU:'HU-010', Data_Inicio:'2025-03-05', Data_Fim:'2025-04-15', Status:'Em andamento'},
+    {Modulo:'Modulo B', Feature:'Feature Z', HU:'HU-011', Data_Inicio:'2025-04-10', Data_Fim:'2025-05-31', Status:'Planejado'},
+    {Modulo:'Modulo B', Feature:'Feature W', HU:'HU-012', Data_Inicio:'2025-05-01', Data_Fim:'2025-06-15', Status:'Planejado'},
+    {Modulo:'Modulo B', Feature:'Feature W', HU:'HU-013', Data_Inicio:'2025-06-10', Data_Fim:'2025-07-20', Status:'Planejado'},
+    {Modulo:'Modulo B', Feature:'Feature W', HU:'HU-014', Data_Inicio:'2025-07-15', Data_Fim:'2025-08-31', Status:'Planejado'}
+  ];
+  _rawRoadmap = roadmapData;
+  _rawSprints = sprints; _rawLeadTime = ltHUs; _rawRequisitos = ltHUs;
+  _rawHomolog = homologData; _rawCapacity = capacityData; _rawRetrabalho = retrabalhoData; _rawAging = agingData;
+  _rawEscrita = escrita; _rawDev = dev;
+  populateFilters(sprints);
+  renderAll(sprints, ltHUs, ltHUs, homologData, capacityData, retrabalhoData, agingData, escrita, dev);
+  document.getElementById('filterBar').style.display = 'flex';
+  applyChartVisibility();
+  applyChartTitles();
+  initDragDrop();
+  switchTab('overview', document.getElementById('tabOverview'));
+}
+
+// ── Filters ────────────────────────────────────────────────────────────
+function getField(r) {
+  return {
+    modulo: r.Modulo || r.modulo || '',
+    sprint: r.Sprint || r.sprint || ''
+  };
+}
+
+function populateFilters(rows) {
+  var modulos = [], sprints = [];
+  rows.forEach(function(r) {
+    var f = getField(r);
+    if (f.modulo && modulos.indexOf(f.modulo) < 0) modulos.push(f.modulo);
+    if (f.sprint && sprints.indexOf(f.sprint) < 0) sprints.push(f.sprint);
+  });
+  modulos.sort();
+  var curMod = document.getElementById('filterModulo').value;
+  var curSpr = document.getElementById('filterSprint').value;
+  document.getElementById('filterModulo').innerHTML = '<option value="">Todos os modulos</option>' +
+    modulos.map(function(m){ return '<option value="' + m + '"' + (m === curMod ? ' selected' : '') + '>' + m + '</option>'; }).join('');
+  document.getElementById('filterSprint').innerHTML = '<option value="">Todas as sprints</option>' +
+    sprints.map(function(s){ return '<option value="' + s + '"' + (s === curSpr ? ' selected' : '') + '>' + s + '</option>'; }).join('');
+}
+
+// Populate the Feature select inside the Lead Time chart using LT raw data
+function populateFeatureFilter(rawLT) {
+  var features = [];
+  (rawLT || []).forEach(function(r) {
+    var ft = r.Feature || r.feature || '';
+    if (ft && features.indexOf(ft) < 0) features.push(ft);
+  });
+  features.sort();
+  var sel = document.getElementById('filterFeature');
+  if (!sel) return;
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">Todas</option>' +
+    features.map(function(ft){ return '<option value="' + ft + '"' + (ft === cur ? ' selected' : '') + '>' + ft + '</option>'; }).join('');
+}
+
+function applyFilters() {
+  var mod     = document.getElementById('filterModulo').value;
+  var spr     = document.getElementById('filterSprint').value;
+  var modNorm = normStr(mod);
+  var fs  = _rawSprints, flt = _rawLeadTime;
+  var fhom = _rawHomolog, fcap = _rawCapacity, fret = _rawRetrabalho, faging = _rawAging;
+  var fescrita = _rawEscrita, fdev = _rawDev;
+  if (mod) {
+    fs   = fs.filter(function(r){   return normStr(getField(r).modulo)         === modNorm; });
+    flt  = flt.filter(function(r){  return normStr(r.Modulo || r.modulo || '') === modNorm; });
+    fhom = fhom.filter(function(r){ return normStr(r.Modulo || r.modulo || '') === modNorm; });
+    fcap = fcap.filter(function(r){ return normStr(r.Modulo || r.modulo || '') === modNorm; });
+    fret = fret.filter(function(r){ return normStr(r.Modulo || r.modulo || '') === modNorm; });
+    faging = faging.filter(function(r){ return normStr(r.Modulo || r.modulo || '') === modNorm; });
+    fescrita = fescrita ? fescrita.filter(function(r){ return normStr(r.Modulo || r.modulo || '') === modNorm; }) : null;
+    fdev = fdev ? fdev.filter(function(r){ return normStr(r.Modulo || r.modulo || '') === modNorm; }) : null;
+  }
+  if (spr) {
+    fs = fs.filter(function(r){ return getField(r).sprint === spr; });
+  }
+  var tags = document.getElementById('activeFilters');
+  tags.innerHTML = '';
+  if (mod) tags.innerHTML += '<span class="filter-tag">Modulo: ' + mod + ' <button onclick="clearFilter(\'mod\')">x</button></span>';
+  if (spr) tags.innerHTML += '<span class="filter-tag">Sprint: ' + spr + ' <button onclick="clearFilter(\'spr\')">x</button></span>';
+  renderAll(fs, flt, _rawRequisitos, fhom, fcap, fret, faging, fescrita, fdev);
+  if (document.getElementById('roadmap') && document.getElementById('roadmap').classList.contains('active')) buildRoadmapGantt();
+}
+function clearFilter(type) {
+  if (type === 'mod') document.getElementById('filterModulo').value = '';
+  if (type === 'spr') document.getElementById('filterSprint').value = '';
+  applyFilters();
+}
+
+function clearFilters() {
+  document.getElementById('filterModulo').value = '';
+  document.getElementById('filterSprint').value = '';
+  document.getElementById('activeFilters').innerHTML = '';
+  renderAll(_rawSprints, _rawLeadTime, _rawRequisitos, _rawHomolog, _rawCapacity, _rawRetrabalho, _rawAging, _rawEscrita, _rawDev);
+  if (document.getElementById('roadmap') && document.getElementById('roadmap').classList.contains('active')) buildRoadmapGantt();
+}
+
+// Local filter for the Lead Time chart only
+function applyFeatureFilter() {
+  var feat    = document.getElementById('filterFeature') ? document.getElementById('filterFeature').value : '';
+  var mod     = document.getElementById('filterModulo').value;
+  var modNorm = normStr(mod);
+  var flt = _rawLeadTime;
+  if (mod)  flt = flt.filter(function(r){ return normStr(r.Modulo || r.modulo || '') === modNorm; });
+  if (feat) flt = flt.filter(function(r){ return (r.Feature || r.feature || '') === feat; });
+  var points = buildLTPoints(flt);
+  var inst = Chart.getChart('cLeadTime');
+  if (inst) inst.destroy();
+  buildLeadTimeScatter(points);
+}
+
+// ── Normalise sprint row ───────────────────────────────────────────────
+function normRow(r) {
+  // g(): find numeric value by trying column name variants
+  function g() {
+    for (var i = 0; i < arguments.length; i++) {
+      var colName = arguments[i]; // capture in local var — no closure bug
+      var k = Object.keys(r).find(function(x){ return x.toLowerCase() === colName.toLowerCase(); });
+      if (k !== undefined && r[k] !== '' && r[k] !== undefined) {
+        var v = parseFloat(String(r[k]).replace(',','.'));
+        if (!isNaN(v)) return v;
+      }
+    }
+    return 0;
+  }
+  // gs(): find string value by trying column name variants
+  function gs() {
+    for (var i = 0; i < arguments.length; i++) {
+      var colName = arguments[i];
+      var k = Object.keys(r).find(function(x){ return x.toLowerCase() === colName.toLowerCase(); });
+      if (k !== undefined && r[k] !== '' && r[k] !== null && r[k] !== undefined) return String(r[k]);
+    }
+    return '';
+  }
+  var husEnt  = g('HUs_Entregues','HUs_entregues','HUsEntregues');
+  var husPlan = g('HUs_Planejadas_Sprint','HUs_Planejadas_Sprint','HUs_Planejadas','HUsPlanejadas','Planejadas');
+  var entPct  = g('Entregas_%','Entregas_pct','Entregas');
+  // Auto-calc %: prefer explicit column, fallback to HUs_Entregues/HUs_Planejadas
+  var entregas = entPct || (husPlan > 0 ? Math.round(husEnt / husPlan * 100) : 0);
+  var husReab  = g('HUs_Reabertas','HUs_reabertas','Reabertas');
+  var husEntreg= g('HUs_Entregues_Total','HUs_Entregues_Retrab','HUsEntregues_Total') || g('HUs_Entregues','HUs_entregues','HUsEntregues');
+  var retrabPct= g('Retrabalho_%','Retrabalho_pct','Retrabalho');
+  var retrabalho = retrabPct || (husEntreg > 0 ? Math.round(husReab / husEntreg * 100) : 0);
+  var agingHU  = g('Aging_HU','Aging_dias','Aging_Dias','Aging');
+  return {
+    sprint:     gs('Sprint','sprint'),
+    modulo:     gs('Modulo','modulo'),
+    entregas:   entregas,
+    husEnt:     husEnt,
+    husPlan:    husPlan,
+    husReab:    husReab,
+    husEntreg:  husEntreg,
+    retrabalho: retrabalho,
+    aging:      agingHU,
+    hus:        g('HUs_Priorizadas','HUs_priorizadas','HUs Priorizadas')
+  };
+}
+
+// ── Build Lead Time scatter points ────────────────────────────────────
+function buildLTPoints(rawLT) {
+  var points = [];
+  (rawLT || []).forEach(function(r) {
+    var dateStr = r.Data_Aceite || r.data_aceite || r['Data Aceite'] || '';
+    var lt = parseFloat(r.LeadTime_dias || r.leadtime_dias || r.LeadTime || r.leadtime || 0);
+    var hu   = r.HU      || r.hu      || '';
+    var mod  = r.Modulo  || r.modulo  || '';
+    var feat = r.Feature || r.feature || '';
+    if (!dateStr || !lt) return;
+    var d;
+    if (String(dateStr).indexOf('/') >= 0) {
+      var parts = String(dateStr).split('/');
+      d = new Date(parts[2] + '-' + parts[1] + '-' + parts[0]);
+    } else {
+      d = new Date(dateStr);
+    }
+    if (isNaN(d.getTime())) return;
+    points.push({ x: d, y: lt, hu: hu, mod: mod, feat: feat });
+  });
+  points.sort(function(a,b){ return a.x - b.x; });
+  return points;
+}
+
+// ── Render all ────────────────────────────────────────────────────────
+function renderAll(rawSprints, rawLT, rawReq, rawHomolog, rawCapacity, rawRetrabalho, rawAging, rawEscrita, rawDev) {
+  rawSprints = rawSprints || [];
+  rawLT      = rawLT      || [];
+  rawReq     = rawReq     || [];
+  rawHomolog = rawHomolog || [];
+  rawCapacity= rawCapacity|| [];
+  rawRetrabalho= rawRetrabalho|| [];
+  rawAging= rawAging|| [];
+  var rows = rawSprints.map(normRow).filter(function(r){ return r.sprint; });
+  var labels = rows.map(function(r){ return r.sprint; });
+  var last = rows[rows.length - 1] || {};
+  var ltPoints = buildLTPoints(rawLT);
+  var lastLT = ltPoints.length ? Math.round(ltPoints.reduce(function(a,p){ return a + p.y; }, 0) / ltPoints.length) : null;
+
+  buildKPICards(last, rows, ltPoints, lastLT, rawReq, rawHomolog);
+  destroyAll();
+  buildBarEntregas(labels, rows);
+  buildRetrabalhoChart(rawRetrabalho);
+  populateFeatureFilter(rawLT);
+  buildLeadTimeScatter(ltPoints);
+  buildBarAging(rawAging);
+  buildReprovacaoPie(rawHomolog);
+  populateReqFilters(rawLT);
+  buildRequisitosScatter(rawLT);
+  populateLTReqFilter(_rawRequisitos);
+  buildLTReqScatter(buildLTReqPoints(_rawRequisitos));
+  buildSimpleBar('cHUs', labels, rows.map(function(r){ return r.hus; }), C.purple, 4, 'Meta >= 4', 'HUs Priorizadas');
+  buildHomologacaoPie(rawHomolog);
+  populateCapSprintFilter(rawCapacity);
+  buildCapacityChart(rawCapacity, labels);
+  if (rawEscrita && rawEscrita.length) {
+    var processedEscrita = processBurndownEscrita(rawEscrita);
+    if (processedEscrita.length) buildBurn('cBurnEscrita', processedEscrita, C.green);
+  }
+  if (rawDev && rawDev.length) {
+    var processedDev = processBurndownDev(rawDev);
+    if (processedDev) buildBurnDevStacked('cBurnDev', processedDev, C.accent);
+  }
+}
+
+// ── KPI Cards ─────────────────────────────────────────────────────────
+function buildKPICards(last, rows, ltPoints, lastLT, rawReq, rawHomolog) {
+  rawReq = rawReq || [];
+  rawHomolog = rawHomolog || [];
+  var kpis = [
+    {lbl:'% Entregas da Sprint',     val:last.entregas+'%',           ok:last.entregas>=80,  meta:'>= 80%',    freq:'Quinzenal', sd:rows.map(function(r){return r.entregas;}),  sm:80,  c:C.green},
+    {lbl:'Lead Time de HU',          val:lastLT !== null ? lastLT : '-', unit:'dias', ok:lastLT !== null && lastLT <= 30, meta:'<= 30 dias', freq:'Por HU', sd:ltPoints.map(function(p){return p.y;}), sm:30, c:C.accent},
+    {lbl:'% Reprovacao Homologacao', val:calcPctReprov(rawReq, rawHomolog)+'%', ok:calcPctReprov(rawReq,rawHomolog)<=20, meta:'<= 20%', freq:'Mensal', sd:buildReprovSparkline(rawHomolog), sm:20, c:C.purple},
+    {lbl:'Aging de HU',              val:last.aging,    unit:'dias',  ok:last.aging<=15,     meta:'<= 15 dias',freq:'Semanal',   sd:rows.map(function(r){return r.aging;}),     sm:15,  c:C.accent},
+    {lbl:'Requisitos Levantados',    val:countReqPeriod(_rawRequisitos), unit:'reqs', ok:countReqPeriod(_rawRequisitos)>=1, meta:'>= 1', freq:'Quinzenal', sd:buildReqSparkline(_rawRequisitos), sm:1, c:C.green},
+    {lbl:'Lead Time de Requisitos',  val:calcAvgLTReq(_rawRequisitos) !== null ? calcAvgLTReq(_rawRequisitos) : '-', unit:'dias', ok:calcAvgLTReq(_rawRequisitos) !== null && calcAvgLTReq(_rawRequisitos) <= 15, meta:'<= 15 dias', freq:'Quinzenal', sd:buildLTReqSparkline(_rawRequisitos), sm:15, c:C.yellow},
+    {lbl:'HUs Priorizadas',          val:last.hus,      unit:'HUs',   ok:last.hus>=4,        meta:'>= 4',      freq:'Quinzenal', sd:rows.map(function(r){return r.hus;}),       sm:4,   c:C.purple}
+  ];
+  // Destroy existing sparkline chart instances before clearing DOM
+  var grid = document.getElementById('kpiGrid');
+  for (var si = 0; si < 20; si++) {
+    var sc = Chart.getChart('spark' + si);
+    if (sc) sc.destroy();
+  }
+  grid.innerHTML = '';
+  kpis.forEach(function(k, i) {
+    var sid = 'spark' + i;
+    var valHtml = k.unit ? (k.val + '<span class="kpi-unit"> ' + k.unit + '</span>') : k.val;
+    grid.insertAdjacentHTML('beforeend',
+      '<div class="kpi-card">' +
+        '<div class="kpi-top">' +
+          '<div>' +
+            '<div class="kpi-lbl">' + k.lbl + '</div>' +
+            '<div class="kpi-val" style="color:' + (k.ok ? C.green : C.red) + '">' + valHtml + '</div>' +
+            '<div class="kpi-meta">Meta: ' + k.meta + '</div>' +
+          '</div>' +
+          '<div class="kpi-right">' +
+            '<span class="badge ' + (k.ok ? 'ok' : 'warn') + '">' + (k.ok ? 'OK' : 'Atencao') + '</span>' +
+            '<span class="freq">' + k.freq + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="mini-chart"><canvas id="' + sid + '"></canvas></div>' +
+      '</div>'
+    );
+    var spLabels = k.sd.map(function(_,j){ return j+1; });
+    new Chart(document.getElementById(sid), {
+      type: 'line',
+      data: { labels: spLabels, datasets: [
+        {data: k.sd, borderColor: k.c, borderWidth: 2, pointRadius: 0, tension: 0.4},
+        {data: Array(k.sd.length).fill(k.sm), borderColor: C.muted, borderWidth: 1, borderDash: [4,3], pointRadius: 0}
+      ]},
+      options: {responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}, tooltip:{enabled:false}},
+        scales:{x:{display:false}, y:{display:false}}}
+    });
+  });
+}
+
+// ── Destroy charts ────────────────────────────────────────────────────
+function destroyAll() {
+  var ids = ['cEntregas','cRetrabalho','cLeadTime','cAging','cReprovacao','cRequisitos','cLTRequisitos','cHUs','cHomologacao','cCapacity','cBurnEscrita','cBurnDev'];
+  ids.forEach(function(id) {
+    var inst = Chart.getChart(id);
+    if (inst) inst.destroy();
+  });
+}
+
+// ── Meta line plugin ──────────────────────────────────────────────────
+function metaPlugin(lines) {
+  return {
+    id: 'metaLines',
+    afterDraw: function(chart) {
+      var ctx = chart.ctx;
+      var ca = chart.chartArea;
+      var y = chart.scales.y;
+      if (!y || !ca) return;
+      lines.forEach(function(item) {
+        var val = item[0], color = item[1], label = item[2];
+        var yp = y.getPixelForValue(val);
+        ctx.save();
+        ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+        ctx.setLineDash([5,4]); ctx.globalAlpha = 0.7;
+        ctx.beginPath(); ctx.moveTo(ca.left, yp); ctx.lineTo(ca.right, yp); ctx.stroke();
+        ctx.globalAlpha = 1; ctx.fillStyle = color;
+        ctx.font = '10px IBM Plex Mono'; ctx.textAlign = 'right';
+        ctx.fillText(label, ca.right - 4, yp - 4);
+        ctx.restore();
+      });
+    }
+  };
+}
+
+// ── Entregas Bar ──────────────────────────────────────────────────────
+function buildBarEntregas(labels, rows) {
+  var data = rows.map(function(r){ return r.entregas; });
+  new Chart(document.getElementById('cEntregas'), {
+    type: 'bar',
+    data: { labels: labels, datasets: [{
+      label: 'Entregue (%)',
+      data: data,
+      backgroundColor: data.map(function(v){ return v >= 80 ? 'rgba(88,166,255,.7)' : 'rgba(248,81,73,.7)'; }),
+      borderRadius: 5
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: {display:false}, tooltip: Object.assign({}, TT, {callbacks:{label:function(it){ var r = rows[it.dataIndex]; var extra = r && r.husPlan ? ' (' + r.husEnt + '/' + r.husPlan + ' HUs)' : ''; return ' ' + it.raw + '%' + extra; }}}) },
+      scales: { x: {grid:{display:false}}, y: {min:0, max:100, grid:{color:C.border}} }
+    },
+    plugins: [metaPlugin([[80, C.yellow, 'Meta 80%']])]
+  });
+}
+
+// ── Lead Time Scatter (x=date, y=dias) ───────────────────────────────
+function buildLeadTimeScatter(points) {
+  var el = document.getElementById('cLeadTime');
+  if (!el || !points.length) return;
+  new Chart(el, {
+    type: 'scatter',
+    data: { datasets: [{
+      label: 'HU',
+      data: points.map(function(p){ return {x: p.x, y: p.y, hu: p.hu, mod: p.mod, feat: p.feat}; }),
+      backgroundColor: points.map(function(p){ return p.y > 30 ? 'rgba(248,81,73,.75)' : 'rgba(88,166,255,.75)'; }),
+      borderColor:     points.map(function(p){ return p.y > 30 ? C.red : C.accent; }),
+      borderWidth: 1, pointRadius: 7, pointHoverRadius: 10
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {display: false},
+        tooltip: {
+          backgroundColor: C.surface, borderColor: C.border, borderWidth: 1,
+          titleColor: C.text, bodyColor: C.muted, padding: 10, cornerRadius: 8,
+          callbacks: {
+            title: function(items) {
+              var d = new Date(items[0].parsed.x);
+              return d.toLocaleDateString('pt-BR');
+            },
+            label: function(item) {
+              return ['HU: ' + (item.raw.hu || '-'), 'Modulo: ' + (item.raw.mod || '-'), 'Feature: ' + (item.raw.feat || '-'), 'Lead Time: ' + item.raw.y + ' dias'];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'month', displayFormats: {month:'MMM/yy', day:'dd/MM'}, tooltipFormat: 'dd/MM/yyyy' },
+          grid: {color: C.border},
+          ticks: {color: C.muted, font:{size:11}},
+          title: {display:true, text:'Data de Aceite', color:C.muted, font:{size:11}}
+        },
+        y: {
+          min: 0,
+          grid: {color: C.border},
+          ticks: {color: C.muted, font:{size:11}},
+          title: {display:true, text:'Dias (Lead Time)', color:C.muted, font:{size:11}}
+        }
+      }
+    },
+    plugins: [metaPlugin([[30, C.yellow, 'Meta <= 30d']])]
+  });
+}
+
+// ── Retrabalho Bar (HUs reabertas / HUs entregues) ────────────────────
+function buildRetrabalhoChart(rawRetrabalho) {
+  var el = document.getElementById('cRetrabalho');
+  if (!el) return;
+  var existing = Chart.getChart(el);
+  if (existing) existing.destroy();
+  
+  // Group by month based on Data_Entrega
+  var monthlyData = {};
+  (rawRetrabalho || []).forEach(function(r) {
+    var dataEntrega = parseDate(r.Data_Entrega || r.data_entrega || r['Data Entrega'] || r.DataEntrega || '');
+    if (!dataEntrega) return;
+    
+    var monthKey = dataEntrega.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '');
+    var husReab = parseFloat(String(r.HUs_Reabertas || r.hus_reabertas || r['HUs Reabertas'] || 0).replace(',','.')) || 0;
+    var husEntreg = parseFloat(String(r.HUs_Entregues_Total || r.hus_entregues_total || r['HUs Entregues Total'] || 0).replace(',','.')) || 0;
+    
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = { date: dataEntrega, husReab: 0, husEntreg: 0 };
+    }
+    monthlyData[monthKey].husReab += husReab;
+    monthlyData[monthKey].husEntreg += husEntreg;
+  });
+  
+  // Sort by date and build arrays
+  var months = Object.keys(monthlyData).sort(function(a, b) {
+    return monthlyData[a].date - monthlyData[b].date;
+  });
+  
+  var labels = [], husReabData = [], husEntregData = [], pctData = [];
+  months.forEach(function(month) {
+    var data = monthlyData[month];
+    var pct = data.husEntreg > 0 ? Math.round((data.husReab / data.husEntreg) * 100) : 0;
+    
+    labels.push(month);
+    husReabData.push(data.husReab);
+    husEntregData.push(data.husEntreg);
+    pctData.push(pct);
+  });
+  
+  new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'HUs Reabertas',    data: husReabData,   backgroundColor: 'rgba(248,81,73,.75)',  borderColor: C.red,    borderRadius: 4, borderWidth: 1 },
+        { label: 'HUs Entregues',    data: husEntregData, backgroundColor: 'rgba(63,185,80,.45)',  borderColor: C.green,  borderRadius: 4, borderWidth: 1 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels:{ color:C.muted, boxWidth:12, font:{size:11} } },
+        tooltip: Object.assign({}, TT, { callbacks: {
+          afterBody: function(items) {
+            var i = items[0].dataIndex;
+            return ['% Retrabalho: ' + pctData[i] + '%'];
+          }
+        }})
+      },
+      scales: { x:{grid:{display:false}}, y:{grid:{color:C.border}, beginAtZero:true,
+        title:{display:true, text:'Nº de HUs', color:C.muted, font:{size:11}} } }
+    },
+    plugins: [metaPlugin([[20, C.yellow, 'Meta <= 20%']])]
+  });
+}
+
+// ── Aging — Nº dias HU permanece no mesmo status ───────────────────────
+function buildBarAging(rawAging) {
+  var el = document.getElementById('cAging');
+  if (!el) return;
+  var existing = Chart.getChart(el);
+  if (existing) existing.destroy();
+  
+  // Process Aging data
+  var labels = [], agingData = [];
+  (rawAging || []).forEach(function(r) {
+    var sprint = r.Sprint || r.sprint || '';
+    var aging = parseFloat(String(r.Aging_HU || r.aging_hu || r['Aging HU'] || r.aging || 0).replace(',','.')) || 0;
+    
+    if (sprint) {
+      labels.push(sprint);
+      agingData.push(aging);
+    }
+  });
+  
+  new Chart(el, {
+    type: 'bar',
+    data: { labels: labels, datasets: [{
+      label: 'Aging (dias)', data: agingData,
+      backgroundColor: agingData.map(function(v){ return v > 15 ? 'rgba(248,81,73,.65)' : 'rgba(188,140,255,.65)'; }),
+      borderRadius: 5, borderWidth: 1
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip: Object.assign({}, TT, { callbacks:{
+        label: function(it){ return 'Aging: ' + it.raw + ' dias (backlog → em desenvolvimento)'; }
+      }})},
+      scales: { x:{grid:{display:false}},
+        y:{ grid:{color:C.border}, beginAtZero:true,
+            title:{display:true, text:'Dias no mesmo status', color:C.muted, font:{size:11}} } }
+    },
+    plugins: [metaPlugin([[15, C.yellow, 'Meta <= 15d']])]
+  });
+}
+
+// ── Qualidade Area ────────────────────────────────────────────────────
+
+
+// ── % Reprovacao em Homologacao (Doughnut) ──────────────────────────
+function calcPctReprov(rawReq, rawHomolog) {
+  var hom = 0, dev = 0;
+  (rawHomolog || []).forEach(function(r) {
+    var s = normStr(r.Status || r.status || '');
+    var t = parseFloat(String(r.Total || r.total || 0).replace(',','.')) || 0;
+    if (s.indexOf('homologad') >= 0 && s.indexOf('dis') < 0) hom += t || 1;
+    if (s.indexOf('devolv') >= 0) dev += t || 1;
+  });
+  var total = hom + dev;
+  return total > 0 ? Math.round(dev / total * 100) : 0;
+}
+
+function buildReprovSparkline(rawHomolog) {
+  var pct = calcPctReprov([], rawHomolog);
+  return [pct, pct, pct, pct, pct, pct];
+}
+
+function buildReprovacaoPie(rawHomolog) {
+  var el = document.getElementById('cReprovacao');
+  if (!el) return;
+  var existing = Chart.getChart(el);
+  if (existing) existing.destroy();
+
+  var hom = 0, dev = 0;
+  (rawHomolog || []).forEach(function(r) {
+    var s = normStr(r.Status || r.status || '');
+    var t = parseFloat(String(r.Total || r.total || 0).replace(',','.')) || 0;
+    if (s.indexOf('homologad') >= 0 && s.indexOf('dis') < 0) hom += t || 1;
+    if (s.indexOf('devolv') >= 0) dev += t || 1;
+  });
+
+  var t1 = document.getElementById('reprovHomologadas');
+  var t2 = document.getElementById('reprovDevolvidas');
+  if (t1) t1.textContent = hom || '0';
+  if (t2) t2.textContent = dev || '0';
+
+  var total = hom + dev;
+  var pct = total > 0 ? Math.round(dev / total * 100) : 0;
+
+  if (!total) {
+    var ctx2 = el.getContext('2d');
+    ctx2.clearRect(0, 0, el.width, el.height);
+    ctx2.fillStyle = C.muted;
+    ctx2.font = '11px IBM Plex Sans, sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.textBaseline = 'middle';
+    var pw = el.parentElement ? el.parentElement.clientWidth : 200;
+    ctx2.fillText('Sem dados', pw / 2, (el.parentElement ? el.parentElement.clientHeight : 180) / 2);
+    return;
+  }
+
+  var centerPlugin = {
+    id: 'reprovCenter',
+    afterDraw: function(chart) {
+      var ctx  = chart.ctx;
+      var arc0 = chart.getDatasetMeta(0).data[0];
+      if (!arc0) return;
+      var cx = arc0.x, cy = arc0.y;
+      ctx.save();
+      ctx.fillStyle = C.text;
+      ctx.font = 'bold 22px IBM Plex Sans, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pct + '%', cx, cy - 8);
+      ctx.fillStyle = C.muted;
+      ctx.font = '9px IBM Plex Mono, monospace';
+      ctx.fillText('REPROVACAO', cx, cy + 9);
+      ctx.restore();
+    }
+  };
+
+  new Chart(el, {
+    type: 'doughnut',
+    data: {
+      labels: ['Homologadas', 'Devolvidas'],
+      datasets: [{
+        data: [hom, dev],
+        backgroundColor: ['rgba(63,185,80,.85)', 'rgba(248,81,73,.85)'],
+        borderColor: [C.green, C.red],
+        borderWidth: 2, hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '58%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: C.surface, borderColor: C.border, borderWidth: 1,
+          titleColor: C.text, bodyColor: C.muted, padding: 10, cornerRadius: 8,
+          callbacks: {
+            label: function(item) {
+              var p = total > 0 ? Math.round(item.raw / total * 100) : 0;
+              return item.label + ': ' + item.raw + ' HUs (' + p + '%)';
+            }
+          }
+        }
+      }
+    },
+    plugins: [centerPlugin]
+  });
+}
+
+// ── Generic simple bar ────────────────────────────────────────────────
+function buildSimpleBar(id, labels, data, color, metaVal, metaLabel, dataLabel) {
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: { labels: labels, datasets: [{label: dataLabel, data: data, backgroundColor: color + '99', borderRadius: 5}]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip: TT },
+      scales: { x:{grid:{display:false}}, y:{grid:{color:C.border}} }
+    },
+    plugins: [metaPlugin([[metaVal, color, metaLabel]])]
+  });
+}
+
+// ── Requisitos Helpers ───────────────────────────────────────────────
+function parseDate(s) {
+  if (!s || s === '' || s === null) return null;
+  s = String(s).trim();
+
+  // Google Apps Script JSON date: "Date(2025,0,5,0,0,0)" (month is 0-based)
+  var gasMatch = s.match(/^Date\((\d+),(\d+),(\d+)/);
+  if (gasMatch) {
+    var d = new Date(parseInt(gasMatch[1]), parseInt(gasMatch[2]), parseInt(gasMatch[3]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // dd/mm/yyyy
+  if (s.indexOf('/') >= 0) {
+    var p = s.split('/');
+    if (p.length === 3) {
+      var d = new Date(p[2] + '-' + p[1] + '-' + p[0]);
+      return isNaN(d.getTime()) ? null : d;
+    }
+  }
+
+  // Excel serial number (e.g. 45000)
+  if (/^\d{4,6}$/.test(s)) {
+    var serial = parseInt(s);
+    if (serial > 1000 && serial < 100000) {
+      // Excel epoch: Jan 1 1900 = 1, but has leap year bug, so offset by 25569 from Unix epoch
+      var d = new Date((serial - 25569) * 86400000);
+      return isNaN(d.getTime()) ? null : d;
+    }
+  }
+
+  // ISO yyyy-mm-dd or any standard format
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function countReqPeriod(rawReq) {
+  // Count HUs with Data_Aceite in last 15 days (only HUs with Data_Aceite filled)
+  var now = new Date();
+  var limit = new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000);
+  var count = 0;
+  (rawReq || []).forEach(function(r) {
+    var d = parseDate(r.Data_Aceite || r.data_aceite || r['Data Aceite'] || '');
+    if (d && d >= limit && d <= now) count++;
+  });
+  // fallback: count total HUs with Data_Aceite filled
+  if (count === 0) {
+    (rawReq || []).forEach(function(r) {
+      var d = parseDate(r.Data_Aceite || r.data_aceite || r['Data Aceite'] || '');
+      if (d) count++;
+    });
+  }
+  return count;
+}
+
+function buildReqSparkline(rawReq) {
+  // Group by week buckets for sparkline (only HUs with Data_Aceite)
+  var itemsWithAceite = (rawReq || []).filter(function(r) {
+    var d = parseDate(r.Data_Aceite || r.data_aceite || r['Data Aceite'] || '');
+    return d !== null;
+  });
+  
+  if (!itemsWithAceite.length) return [0,0,0,0,0,0];
+  
+  var sorted = itemsWithAceite.slice().sort(function(a,b){
+    var gda = function(x){ return parseDate(x.Data_Aceite||x.data_aceite||x['Data Aceite']||'') || 0; }; 
+    return gda(a) - gda(b);
+  });
+  // split into 6 equal buckets
+  var buckets = [0,0,0,0,0,0];
+  var n = sorted.length;
+  sorted.forEach(function(r, i) {
+    var bi = Math.min(5, Math.floor(i * 6 / n));
+    buckets[bi]++;
+  });
+  return buckets;
+}
+
+function populateReqFilters(rawReq) {
+  // Only show Features from HUs with Data_Aceite filled
+  var itemsWithAceite = (rawReq || []).filter(function(r) {
+    var dAceite = parseDate(r.Data_Aceite || r.data_aceite || r['Data Aceite'] || '');
+    return dAceite !== null;
+  });
+  
+  var features = [];
+  itemsWithAceite.forEach(function(r) {
+    var ft = r.Feature || r.feature || '';
+    if (ft && features.indexOf(ft) < 0) features.push(ft);
+  });
+  features.sort();
+  var selF = document.getElementById('filterReqFeature');
+  var selS = document.getElementById('filterReqStatus');
+  if (!selF) return;
+  var curF = selF.value, curS = selS ? selS.value : '';
+  selF.innerHTML = '<option value="">Todas</option>' +
+    features.map(function(ft){ return '<option value="' + ft + '"' + (ft === curF ? ' selected' : '') + '>' + ft + '</option>'; }).join('');
+  if (selS) selS.value = curS;
+}
+
+function applyReqFilters() {
+  var feat    = document.getElementById('filterReqFeature') ? document.getElementById('filterReqFeature').value : '';
+  var mod     = document.getElementById('filterModulo').value;
+  var modNorm = normStr(mod);
+  
+  // Start with only HUs that have Data_Aceite filled
+  var data = _rawLeadTime.filter(function(r) {
+    var dAceite = parseDate(r.Data_Aceite || r.data_aceite || r['Data Aceite'] || '');
+    return dAceite !== null;
+  });
+  
+  if (mod)  data = data.filter(function(r){ return normStr(r.Modulo || r.modulo || '') === modNorm; });
+  if (feat) data = data.filter(function(r){ return (r.Feature || r.feature || '') === feat; });
+  var inst = Chart.getChart('cRequisitos');
+  if (inst) inst.destroy();
+  buildRequisitosScatter(data);
+}
+
+function buildRequisitosScatter(rawReq) {
+  var el = document.getElementById('cRequisitos');
+  if (!el) return;
+
+  // Only HUs with Data_Aceite filled
+  var items = (rawReq || []).filter(function(r) {
+    var dAceite = parseDate(r.Data_Aceite || r.data_aceite || r['Data Aceite'] || '');
+    return dAceite !== null;
+  });
+
+  if (!items.length) return;
+
+  // Find date range
+  var dates = items.map(function(r) {
+    return parseDate(r.Data_Aceite || r.data_aceite || r['Data Aceite'] || '');
+  });
+  var minDate = new Date(Math.min.apply(null, dates));
+  var maxDate = new Date(Math.max.apply(null, dates));
+
+  // Build 15-day buckets from minDate to maxDate
+  var buckets = [], bucketLabels = [], bucketStart = new Date(minDate);
+  bucketStart.setHours(0,0,0,0);
+
+  while (bucketStart <= maxDate) {
+    var bucketEnd = new Date(bucketStart.getTime() + 14 * 86400000);
+    buckets.push({ start: new Date(bucketStart), end: bucketEnd, count: 0, hus: [] });
+    bucketLabels.push(bucketStart.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }));
+    bucketStart = new Date(bucketEnd.getTime() + 86400000);
+  }
+
+  // Assign each HU to its bucket by Data_Aceite
+  items.forEach(function(r) {
+    var dAceite = parseDate(r.Data_Aceite || r.data_aceite || r['Data Aceite'] || '');
+    var hu   = r.HU || r.hu || '-';
+    var feat = r.Feature || r.feature || '';
+    for (var i = 0; i < buckets.length; i++) {
+      if (dAceite >= buckets[i].start && dAceite <= buckets[i].end) {
+        buckets[i].count++;
+        buckets[i].hus.push(hu + (feat ? ' (' + feat + ')' : ''));
+        break;
+      }
+    }
+  });
+
+  var counts   = buckets.map(function(b) { return b.count; });
+  var huLists  = buckets.map(function(b) { return b.hus; });
+  var periods  = buckets.map(function(b) {
+    return b.start.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' - ' +
+           b.end.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  });
+
+  new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: bucketLabels,
+      datasets: [{
+        label: 'Requisitos',
+        data: counts,
+        backgroundColor: 'rgba(63,185,80,.7)',
+        borderColor: C.green,
+        borderRadius: 5,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: C.surface, borderColor: C.border, borderWidth: 1,
+          titleColor: C.text, bodyColor: C.muted, padding: 10, cornerRadius: 8,
+          callbacks: {
+            title: function(items) { return 'Periodo: ' + periods[items[0].dataIndex]; },
+            label: function(item) {
+              var hus = huLists[item.dataIndex];
+              var lines = ['Requisitos aceitos: ' + item.raw];
+              hus.forEach(function(h) { lines.push('  ' + h); });
+              return lines;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: C.muted, font: { size: 10 } },
+          title: { display: true, text: 'Quinzena (data de aceite)', color: C.muted, font: { size: 11 } }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: C.border },
+          ticks: { color: C.muted, font: { size: 11 }, stepSize: 1 },
+          title: { display: true, text: 'Qtd. Requisitos', color: C.muted, font: { size: 11 } }
+        }
+      }
+    },
+    plugins: [metaPlugin([[1, C.yellow, 'Meta >= 1']])]
+  });
+}
+
+// ── Lead Time de Requisitos ──────────────────────────────────────────
+function buildLTReqPoints(rawReq) {
+  var today = new Date();
+  var points = [];
+  (rawReq || []).forEach(function(r) {
+    var hu     = r.HU      || r.hu      || '-';
+    var feat   = r.Feature || r.feature || '';
+    var mod    = r.Modulo  || r.modulo  || '';
+    var status = r.Status  || r.status  || '';
+    var dStart = parseDate(r.Data_Inicio || r.data_inicio || r['Data Inicio'] || r.DataInicio || '');
+    var dFim   = parseDate(r.Data_Fim || r.data_fim || r.Data_Aceite || r.data_aceite || r['Data Aceite'] || r['Data Fim'] || r.DataFim || '');
+    if (!dStart) return;
+    var dEnd    = dFim || today;
+    var lt      = Math.round((dEnd - dStart) / 86400000);
+    var fin     = status === 'Finalizado' || status === 'finalizado';
+    points.push({ x: dEnd, y: lt, hu: hu, feat: feat, mod: mod, status: status, finalizado: fin });
+  });
+  points.sort(function(a, b) { return a.x - b.x; });
+  return points;
+}
+
+function calcAvgLTReq(rawReq) {
+  var pts = buildLTReqPoints(rawReq).filter(function(p) { return p.finalizado; });
+  if (!pts.length) return null;
+  var sum = pts.reduce(function(a, p) { return a + p.y; }, 0);
+  return Math.round(sum / pts.length);
+}
+
+function buildLTReqSparkline(rawReq) {
+  var pts = buildLTReqPoints(rawReq);
+  if (!pts.length) return [0,0,0,0,0,0];
+  var buckets = [0,0,0,0,0,0];
+  var n = pts.length;
+  pts.forEach(function(p, i) {
+    var bi = Math.min(5, Math.floor(i * 6 / n));
+    buckets[bi] = p.y;
+  });
+  return buckets;
+}
+
+function populateLTReqFilter(rawReq) {
+  var sel = document.getElementById('filterLTReqFeature');
+  if (!sel) return;
+  var features = [];
+  (rawReq || []).forEach(function(r) {
+    var ft = r.Feature || r.feature || '';
+    if (ft && features.indexOf(ft) < 0) features.push(ft);
+  });
+  features.sort();
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">Todas</option>' +
+    features.map(function(ft) {
+      return '<option value="' + ft + '"' + (ft === cur ? ' selected' : '') + '>' + ft + '</option>';
+    }).join('');
+}
+
+function applyLTReqFilter() {
+  var feat    = document.getElementById('filterLTReqFeature') ? document.getElementById('filterLTReqFeature').value : '';
+  var mod     = document.getElementById('filterModulo').value;
+  var modNorm = normStr(mod);
+  var data = _rawRequisitos;
+  if (mod)  data = data.filter(function(r){ return normStr(r.Modulo  || r.modulo  || '') === modNorm; });
+  if (feat) data = data.filter(function(r){ return (r.Feature || r.feature || '') === feat; });
+  var inst = Chart.getChart('cLTRequisitos');
+  if (inst) inst.destroy();
+  buildLTReqScatter(buildLTReqPoints(data));
+}
+
+function buildLTReqScatter(points) {
+  var el = document.getElementById('cLTRequisitos');
+  if (!el || !points.length) return;
+  var META = 15;
+  new Chart(el, {
+    type: 'scatter',
+    data: { datasets: [{
+      label: 'HU',
+      data: points.map(function(p) {
+        return { x: p.x, y: p.y, hu: p.hu, feat: p.feat, mod: p.mod, status: p.status, fin: p.finalizado };
+      }),
+      backgroundColor: points.map(function(p) {
+        if (!p.finalizado) return 'rgba(210,153,34,.65)';
+        return p.y > META ? 'rgba(248,81,73,.75)' : 'rgba(88,166,255,.75)';
+      }),
+      borderColor: points.map(function(p) {
+        if (!p.finalizado) return C.yellow;
+        return p.y > META ? C.red : C.accent;
+      }),
+      borderWidth: 1, pointRadius: 7, pointHoverRadius: 10
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: C.surface, borderColor: C.border, borderWidth: 1,
+          titleColor: C.text, bodyColor: C.muted, padding: 10, cornerRadius: 8,
+          callbacks: {
+            title: function(items) {
+              return new Date(items[0].parsed.x).toLocaleDateString('pt-BR');
+            },
+            label: function(item) {
+              var r = item.raw;
+              return [
+                'HU: '      + (r.hu     || '-'),
+                'Feature: ' + (r.feat   || '-'),
+                'Modulo: '  + (r.mod    || '-'),
+                'Status: '  + (r.status || '-'),
+                'Lead Time: '+ r.y + ' dias'
+              ];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'month', displayFormats: { month: 'MMM/yy', day: 'dd/MM' }, tooltipFormat: 'dd/MM/yyyy' },
+          grid: { color: C.border },
+          ticks: { color: C.muted, font: { size: 11 } },
+          title: { display: true, text: 'Data Fim do Levantamento', color: C.muted, font: { size: 11 } }
+        },
+        y: {
+          min: 0,
+          grid: { color: C.border },
+          ticks: { color: C.muted, font: { size: 11 } },
+          title: { display: true, text: 'Dias (Lead Time Requisito)', color: C.muted, font: { size: 11 } }
+        }
+      }
+    },
+    plugins: [metaPlugin([[META, C.yellow, 'Meta <= 15d']])]
+  });
+}
+
+// ── HUs em Homologacao (Pie) ─────────────────────────────────────────
+// ── HUs em Homologacao ───────────────────────────────────────────────
+function buildHomologacaoPie(rawHomolog) {
+  var el = document.getElementById('cHomologacao');
+  if (!el) return;
+
+  var existing = Chart.getChart(el);
+  if (existing) existing.destroy();
+
+  // Use rawHomolog as-is — already filtered by applyFilters before being passed here
+  var emHomolog = 0, dispHomolog = 0;
+  (rawHomolog || []).forEach(function(r) {
+    var s = normStr(r.Status || r.status || '');
+    var t = parseFloat(String(r.Total || r.total || r.Quantidade || r.quantidade || 0).replace(',', '.')) || 0;
+    if (s.indexOf('em homolog') >= 0)  emHomolog  += t || 1;
+    else if (s.indexOf('dispon') >= 0) dispHomolog += t || 1;
+  });
+
+  var total = emHomolog + dispHomolog;
+
+  // Update counter elements
+  var t1 = document.getElementById('homologTotal1');
+  var t2 = document.getElementById('homologTotal2');
+  if (t1) t1.textContent = emHomolog || '0';
+  if (t2) t2.textContent = dispHomolog || '0';
+
+  if (!total) {
+    var ctx2 = el.getContext('2d');
+    var pw = el.parentElement ? el.parentElement.clientWidth  : 200;
+    var ph = el.parentElement ? el.parentElement.clientHeight : 180;
+    var t1b = document.getElementById('homologTotal1');
+    var t2b = document.getElementById('homologTotal2');
+    if (t1b) t1b.textContent = '0';
+    if (t2b) t2b.textContent = '0';
+    ctx2.clearRect(0, 0, el.width, el.height);
+    ctx2.fillStyle = '#7d8590';
+    ctx2.font = '11px IBM Plex Sans, sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.textBaseline = 'middle';
+    ctx2.fillText('Sem dados', pw / 2, ph / 2);
+    return;
+  }
+
+  var labelPlugin = {
+    id: 'pieLabels',
+    afterDraw: function(chart) {
+      var ctx  = chart.ctx;
+      var meta = chart.getDatasetMeta(0);
+      var ds   = chart.data.datasets[0];
+
+      // Draw value on each slice
+      meta.data.forEach(function(arc, i) {
+        var val = ds.data[i];
+        if (!val) return;
+        var cp = arc.getCenterPoint();
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 13px IBM Plex Sans, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(val), cp.x, cp.y);
+        ctx.restore();
+      });
+
+      // Draw total in the center of the doughnut
+      var cx = chart.getDatasetMeta(0).data[0] ? chart.getDatasetMeta(0).data[0].x : chart.chartArea.left + (chart.chartArea.right - chart.chartArea.left) / 2;
+      var cy = chart.getDatasetMeta(0).data[0] ? chart.getDatasetMeta(0).data[0].y : chart.chartArea.top  + (chart.chartArea.bottom - chart.chartArea.top) / 2;
+      ctx.save();
+      ctx.fillStyle = C.text;
+      ctx.font = 'bold 20px IBM Plex Sans, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(total), cx, cy - 7);
+      ctx.fillStyle = C.muted;
+      ctx.font = '9px IBM Plex Mono, monospace';
+      ctx.fillText('TOTAL', cx, cy + 9);
+      ctx.restore();
+    }
+  };
+
+  new Chart(el, {
+    type: 'doughnut',
+    data: {
+      labels: ['Em Homologacao', 'Disponivel p/ Homologacao'],
+      datasets: [{
+        data: [emHomolog, dispHomolog],
+        backgroundColor: ['rgba(88,166,255,.85)', 'rgba(63,185,80,.85)'],
+        borderColor: [C.accent, C.green],
+        borderWidth: 2,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '55%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: C.surface, borderColor: C.border, borderWidth: 1,
+          titleColor: C.text, bodyColor: C.muted, padding: 10, cornerRadius: 8,
+          callbacks: {
+            label: function(item) {
+              var pct = total > 0 ? Math.round(item.raw / total * 100) : 0;
+              return item.label + ': ' + item.raw + ' HUs (' + pct + '%)';
+            }
+          }
+        }
+      }
+    },
+    plugins: [labelPlugin]
+  });
+}
+// ── Capacity: Disponivel vs Planejado por Funcao ─────────────────────
+function populateCapSprintFilter(rawCapacity) {
+  var sel = document.getElementById('filterCapSprint');
+  if (!sel) return;
+  var sprints = [], seen = {};
+  (rawCapacity || []).forEach(function(r) {
+    var s = r.Sprint || r.sprint || '';
+    if (s && !seen[s]) { seen[s]=1; sprints.push(s); }
+  });
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">Todas</option>' +
+    sprints.map(function(s){ return '<option value="' + s + '"' + (s===cur?' selected':'') + '>' + s + '</option>'; }).join('');
+}
+
+function applyCapFilter() {
+  var spr = document.getElementById('filterCapSprint') ? document.getElementById('filterCapSprint').value : '';
+  var mod = document.getElementById('filterModulo') ? document.getElementById('filterModulo').value : '';
+  var data = _rawCapacity;
+  if (mod) {
+      data = data.filter(function(r){ return normStr(r.Modulo||r.modulo||'') === normStr(mod); });
+  }
+  if (spr) data = data.filter(function(r){ return (r.Sprint||r.sprint||'') === spr; });
+  var inst = Chart.getChart('cCapacity');
+  if (inst) inst.destroy();
+  buildCapacityChart(data, []);
+}
+
+function buildCapacityChart(rawCapacity, sprintLabels) {
+  var el = document.getElementById('cCapacity');
+  if (!el) return;
+  var existing = Chart.getChart(el);
+  if (existing) existing.destroy();
+  if (!rawCapacity || !rawCapacity.length) return;
+
+  var FUNCOES = ['UX/UI','Banco de Dados','Requisitos','Front-end','Back-end','QA'];
+
+  // Two fixed colors: Disponivel (solid accent) and Planejado (muted yellow)
+  var COLOR_DISP = 'rgba(88,166,255,.85)';
+  var COLOR_PLAN = 'rgba(210,153,34,.75)';
+  var BORDER_DISP = C.accent;
+  var BORDER_PLAN = C.yellow;
+
+  // Filter by local sprint select
+  var selSpr = document.getElementById('filterCapSprint') ? document.getElementById('filterCapSprint').value : '';
+  var data = rawCapacity;
+  if (selSpr) data = data.filter(function(r){ return (r.Sprint||r.sprint||'') === selSpr; });
+
+  // Collect and sort unique functions
+  var funcSeen = {}, funcList = [];
+  data.forEach(function(r){
+    var fn = r.Funcao || r.funcao || '';
+    if (fn && !funcSeen[fn]) { funcSeen[fn]=1; funcList.push(fn); }
+  });
+  funcList.sort(function(a,b){
+    return (FUNCOES.indexOf(a)<0?99:FUNCOES.indexOf(a)) - (FUNCOES.indexOf(b)<0?99:FUNCOES.indexOf(b));
+  });
+
+  // Sum Disponivel and Planejado per function
+  var dispMap = {}, planMap = {};
+  data.forEach(function(r) {
+    var fn = r.Funcao || r.funcao || '';
+    if (!fn) return;
+    var disp = parseFloat(String(r.Disponivel || r.disponivel || r.Horas || r.horas || 0).replace(',','.')) || 0;
+    var plan = parseFloat(String(r.Planejado  || r.planejado  || 0).replace(',','.')) || 0;
+    dispMap[fn] = (dispMap[fn]||0) + disp;
+    planMap[fn] = (planMap[fn]||0) + plan;
+  });
+
+  var dispData = funcList.map(function(fn){ return dispMap[fn]||0; });
+  var planData = funcList.map(function(fn){ return planMap[fn]||0; });
+
+  // Plugin: draw value on top of each bar
+  var barLabelPlugin = {
+    id: 'barLabels',
+    afterDatasetsDraw: function(chart) {
+      var ctx = chart.ctx;
+      chart.data.datasets.forEach(function(ds) {
+        var meta = chart.getDatasetMeta(chart.data.datasets.indexOf(ds));
+        meta.data.forEach(function(bar, i) {
+          var val = ds.data[i];
+          if (!val) return;
+          ctx.save();
+          ctx.fillStyle = C.text;
+          ctx.font = 'bold 10px IBM Plex Sans, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(val + 'h', bar.x, bar.y - 2);
+          ctx.restore();
+        });
+      });
+    }
+  };
+
+  new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: funcList,
+      datasets: [
+        {
+          label: 'Disponivel (h)',
+          data: dispData,
+          backgroundColor: COLOR_DISP,
+          borderColor: BORDER_DISP,
+          borderWidth: 1.5,
+          borderRadius: 4
+        },
+        {
+          label: 'Planejado (h)',
+          data: planData,
+          backgroundColor: COLOR_PLAN,
+          borderColor: BORDER_PLAN,
+          borderWidth: 1.5,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: C.surface, borderColor: C.border, borderWidth: 1,
+          titleColor: C.text, bodyColor: C.muted, padding: 10, cornerRadius: 8,
+          callbacks: {
+            afterBody: function(items) {
+              var fn = items[0].label;
+              var d = dispMap[fn]||0, p = planMap[fn]||0;
+              var uso = d > 0 ? Math.round(p/d*100) : 0;
+              var livre = d - p;
+              return ['', 'Utilizacao: ' + uso + '%', 'Horas livres: ' + livre + 'h'];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: C.muted, font: { size: 11 } } },
+        y: {
+          beginAtZero: true,
+          grid: { color: C.border },
+          ticks: { color: C.muted, font: { size: 11 } },
+          title: { display: true, text: 'Horas', color: C.muted, font: { size: 11 } }
+        }
+      }
+    },
+    plugins: [barLabelPlugin]
+  });
+}
+// ── Burndown ──────────────────────────────────────────────────────────
+// ── Burndown de Escrita — processar HUs e calcular agrupamento quinzenal ───
+function processBurndownEscrita(rawHUs) {
+  if (!rawHUs || !rawHUs.length) return [];
+  
+  // 1) HUs PLANEJADAS = HUs com Data_Inicio preenchida
+  var husComInicio = rawHUs.filter(function(r) {
+    var dInicio = parseDate(r.Data_Inicio || r.data_inicio || r['Data Inicio'] || r.DataInicio || '');
+    return dInicio !== null;
+  });
+  
+  if (!husComInicio.length) return [];
+  
+  var totalPlanejado = husComInicio.length;
+  
+  // 2) HUs ESCRITAS = HUs com Data_Aceite preenchida
+  var husComAceite = rawHUs.filter(function(r) {
+    var dAceite = parseDate(r.Data_Aceite || r.data_aceite || r['Data Aceite'] || '');
+    return dAceite !== null;
+  });
+  
+  if (!husComAceite.length) return [];
+  
+  // Ordenar por Data_Aceite
+  husComAceite.sort(function(a, b) {
+    var dA = parseDate(a.Data_Aceite || a.data_aceite || a['Data Aceite'] || '');
+    var dB = parseDate(b.Data_Aceite || b.data_aceite || b['Data Aceite'] || '');
+    return dA - dB;
+  });
+  
+  // Encontrar data inicial e final (baseado em Data_Aceite)
+  var minDate = parseDate(husComAceite[0].Data_Aceite || husComAceite[0].data_aceite || husComAceite[0]['Data Aceite']);
+  var maxDate = parseDate(husComAceite[husComAceite.length - 1].Data_Aceite || husComAceite[husComAceite.length - 1].data_aceite || husComAceite[husComAceite.length - 1]['Data Aceite']);
+  
+  // Criar buckets quinzenais (15 dias)
+  var buckets = [];
+  var bucketLabels = [];
+  var bucketStart = new Date(minDate);
+  bucketStart.setHours(0, 0, 0, 0);
+  
+  while (bucketStart <= maxDate) {
+    var bucketEnd = new Date(bucketStart.getTime() + 14 * 86400000);
+    buckets.push({ start: new Date(bucketStart), end: bucketEnd, count: 0 });
+    bucketLabels.push(bucketStart.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+    bucketStart = new Date(bucketEnd.getTime() + 86400000);
+  }
+  
+  // Contar HUs escritas por bucket (baseado em Data_Aceite)
+  husComAceite.forEach(function(r) {
+    var dAceite = parseDate(r.Data_Aceite || r.data_aceite || r['Data Aceite'] || '');
+    for (var i = 0; i < buckets.length; i++) {
+      if (dAceite >= buckets[i].start && dAceite <= buckets[i].end) {
+        buckets[i].count++;
+        break;
+      }
+    }
+  });
+  
+  // Calcular burndown (HUs restantes)
+  var result = [];
+  var acumulado = 0;
+  
+  for (var i = 0; i < buckets.length; i++) {
+    acumulado += buckets[i].count;
+    var restante = totalPlanejado - acumulado;
+    
+    // Calcular linear (tendência perfeita)
+    var progresso = i / (buckets.length - 1);
+    var linear = Math.round(totalPlanejado * (1 - progresso));
+    
+    result.push({
+      Dia: bucketLabels[i],
+      Planejado: totalPlanejado,
+      Real: restante,
+      Linear: linear
+    });
+  }
+  
+  return result;
+}
+
+// ── Burndown de Desenvolvimento — processar sprints e calcular acumulado ───
+function processBurndownDev(rawSprints) {
+  if (!rawSprints || !rawSprints.length) return null;
+  
+  var labels = [];
+  var husEntregues = [];
+  var husRestantes = [];
+  var husPlanejadas = [];
+  var acumuladoPlanejado = [];
+  var acumuladoEntregue = [];
+  var totalPlanejado = 0;
+  
+  // Calcular total planejado (soma de todas as HUs_Planejadas_Sprint)
+  rawSprints.forEach(function(r) {
+    var planejadas = parseFloat(String(r.HUs_Planejadas_Sprint || r.hus_planejadas_sprint || r['HUs Planejadas Sprint'] || 0).replace(',','.')) || 0;
+    totalPlanejado += planejadas;
+  });
+  
+  // Processar cada sprint
+  var acumPlan = 0;
+  var acumEntr = 0;
+  rawSprints.forEach(function(r) {
+    var sprint = r.Sprint || r.sprint || '';
+    var planejadas = parseFloat(String(r.HUs_Planejadas_Sprint || r.hus_planejadas_sprint || r['HUs Planejadas Sprint'] || 0).replace(',','.')) || 0;
+    var entregues = parseFloat(String(r.HUs_Entregues || r.hus_entregues || r['HUs Entregues'] || 0).replace(',','.')) || 0;
+    
+    acumPlan += planejadas;
+    acumEntr += entregues;
+    var restante = totalPlanejado - acumEntr;
+    
+    labels.push(sprint);
+    husEntregues.push(entregues);
+    husPlanejadas.push(planejadas);
+    husRestantes.push(restante >= 0 ? restante : 0);
+    acumuladoPlanejado.push(acumPlan);
+    acumuladoEntregue.push(acumEntr);
+  });
+  
+  return {
+    labels: labels,
+    entregues: husEntregues,
+    planejadas: husPlanejadas,
+    restantes: husRestantes,
+    totalPlanejado: totalPlanejado,
+    acumuladoPlanejado: acumuladoPlanejado,
+    acumuladoEntregue: acumuladoEntregue
+  };
+}
+
+// ── Burndown de Desenvolvimento — gráfico de colunas empilhadas ───
+function buildBurnDevStacked(id, data, color) {
+  if (!data) return;
+  
+  var el = document.getElementById(id);
+  if (!el) return;
+  var existing = Chart.getChart(el);
+  if (existing) existing.destroy();
+  
+  // Calcular tendência linear
+  var linearData = [];
+  var numPontos = data.labels.length;
+  for (var i = 0; i < numPontos; i++) {
+    var progresso = i / (numPontos - 1);
+    linearData.push(Math.round(data.totalPlanejado * (1 - progresso)));
+  }
+  
+  new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [
+        {
+          label: 'HUs Entregues',
+          data: data.entregues,
+          backgroundColor: 'rgba(63,185,80,.75)',
+          borderColor: C.green,
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          label: 'HUs Restantes',
+          data: data.restantes,
+          backgroundColor: 'rgba(136,136,136,.35)',
+          borderColor: 'rgba(136,136,136,.6)',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          type: 'line',
+          label: 'Tendência Linear',
+          data: linearData,
+          borderColor: C.yellow,
+          borderWidth: 2,
+          borderDash: [6, 4],
+          pointRadius: 3,
+          pointBackgroundColor: C.yellow,
+          fill: false,
+          order: -1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { 
+          stacked: true,
+          grid: { display: false },
+          ticks: { color: C.muted, font: { size: 11 } }
+        },
+        y: { 
+          stacked: true,
+          beginAtZero: true,
+          grid: { color: C.border },
+          ticks: { color: C.muted, font: { size: 11 } },
+          title: { display: true, text: 'Nº de HUs', color: C.muted, font: { size: 11 } }
+        }
+      },
+      plugins: {
+        legend: { 
+          labels: { color: C.muted, boxWidth: 12, font: { size: 11 } }
+        },
+        tooltip: Object.assign({}, TT, {
+          callbacks: {
+            afterBody: function(items) {
+              var idx = items[0].dataIndex;
+              var planejadaSprint = data.planejadas[idx];
+              var entregueSprint = data.entregues[idx];
+              var acumPlan = data.acumuladoPlanejado[idx];
+              var acumEntr = data.acumuladoEntregue[idx];
+              
+              return [
+                '',
+                '━━━ Sprint ━━━',
+                'Planejado: ' + planejadaSprint + ' HUs',
+                'Entregue: ' + entregueSprint + ' HUs',
+                '',
+                '━━━ Acumulado ━━━',
+                'Planejado: ' + acumPlan + ' HUs',
+                'Entregue: ' + acumEntr + ' HUs'
+              ];
+            }
+          }
+        })
+      }
+    }
+  });
+}
+
+function buildBurn(id, rows, color) {
+  function gv(r, a, b) {
+    var ka = Object.keys(r).find(function(x){ return x.toLowerCase() === a; });
+    var kb = Object.keys(r).find(function(x){ return x.toLowerCase() === b; });
+    return parseFloat(r[ka] || r[kb] || 0);
+  }
+  var labels = rows.map(function(r){ return r.Dia || r.dia || ''; });
+  new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { labels: labels, datasets: [
+      {label:'Planejado',        data:rows.map(function(r){return gv(r,'planejado','planned');}), borderColor:C.muted,  borderWidth:1.5, borderDash:[6,4], pointRadius:0, fill:false, tension:0},
+      {label:'Tendencia Linear', data:rows.map(function(r){return gv(r,'linear','tendencia');}),  borderColor:C.yellow, borderWidth:1.5, borderDash:[3,3], pointRadius:0, fill:false, tension:0},
+      {label:'Real',             data:rows.map(function(r){return gv(r,'real','atual');}),         borderColor:color,    borderWidth:2.5, pointRadius:4,    fill:false, tension:0.3}
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{labels:{color:C.muted,boxWidth:12,font:{size:11}}}, tooltip: TT },
+      scales: { x:{grid:{display:false}}, y:{grid:{color:C.border}, title:{display:true,text:'HUs restantes',color:C.muted,font:{size:10}}} }
+    }
+  });
+}
+
+// ── Roadmap Gantt ────────────────────────────────────────────────────
+function toggleRmStatus(status) {
+  _roadmapStatusFilter = (_roadmapStatusFilter === status) ? '' : status;
+  updateRmStatusButtons();
+  buildRoadmapGantt();
+}
+function clearRmStatus() {
+  _roadmapStatusFilter = '';
+  updateRmStatusButtons();
+  buildRoadmapGantt();
+}
+function updateRmStatusButtons() {
+  var statuses = ['concluido','andamento','planejado'];
+  var ids      = ['rmBtnConcluido','rmBtnAndamento','rmBtnPlanejado'];
+  var labels   = ['Concluido','Em andamento','Planejado'];
+  var colors   = ['rgba(63,185,80,.4)','rgba(88,166,255,.4)','rgba(125,133,144,.4)'];
+  var textCols = ['var(--green)','var(--accent)','var(--muted)'];
+  var bgActive = ['rgba(63,185,80,.2)','rgba(88,166,255,.2)','rgba(125,133,144,.15)'];
+  ids.forEach(function(id, i) {
+    var btn = document.getElementById(id);
+    if (!btn) return;
+    var active = _roadmapStatusFilter === statuses[i];
+    btn.style.background   = active ? bgActive[i] : 'var(--surface2)';
+    btn.style.borderColor  = active ? colors[i].replace('.4','.8') : colors[i];
+    btn.style.fontWeight   = active ? '800' : '700';
+    btn.style.boxShadow    = active ? ('0 0 0 1px ' + colors[i]) : 'none';
+  });
+  var af = document.getElementById('rmActiveFilter');
+  var al = document.getElementById('rmActiveFilterLabel');
+  if (af) af.style.display = _roadmapStatusFilter ? 'flex' : 'none';
+  if (al && _roadmapStatusFilter) {
+    var idx = statuses.indexOf(_roadmapStatusFilter);
+    al.textContent = 'Filtro: ' + (idx >= 0 ? labels[idx] : _roadmapStatusFilter);
+  }
+}
+
+function setRoadmapScale(scale) {
+  _roadmapScale = scale;
+  var btnQ = document.getElementById('btnQuinzenal');
+  var btnM = document.getElementById('btnMensal');
+  if (btnQ) { btnQ.style.background = scale==='quinzenal' ? C.accent : 'var(--surface2)'; btnQ.style.color = scale==='quinzenal' ? '#0d1117' : 'var(--muted)'; btnQ.style.border = scale==='quinzenal' ? 'none' : '1px solid var(--border)'; }
+  if (btnM) { btnM.style.background = scale==='mensal'    ? C.accent : 'var(--surface2)'; btnM.style.color = scale==='mensal'    ? '#0d1117' : 'var(--muted)'; btnM.style.border = scale==='mensal'    ? 'none' : '1px solid var(--border)'; }
+  buildRoadmapGantt();
+}
+
+function showRmTip(e, d) {
+  var tip = document.getElementById('rmTooltip');
+  if (!tip) return;
+  var sc = normStr(d.status||'');
+  var col = sc.indexOf('conclu')>=0 ? '#3fb950' : sc.indexOf('andamento')>=0 ? '#58a6ff' : '#7d8590';
+  tip.innerHTML = '<strong style="color:' + col + '">' + (d.nome||'-') + '</strong><br><span style="color:var(--muted)">Tipo: ' + (d.tipo||'-') + '</span><br><span style="color:var(--muted)">Status: ' + (d.status||'-') + '</span><br>Inicio: ' + (d.inicio||'-') + '<br>Fim: ' + (d.fim||'-') + '<br>Duracao: ' + (d.dias||'-') + ' dias';
+  tip.style.display = 'block';
+  tip.style.left = (e.clientX + 14) + 'px';
+  tip.style.top  = (e.clientY - 10) + 'px';
+}
+function hideRmTip() {
+  var tip = document.getElementById('rmTooltip');
+  if (tip) tip.style.display = 'none';
+}
+
+function buildRoadmapGantt() {
+  var container = document.getElementById('roadmapInner');
+  if (!container) return;
+
+  var mod = document.getElementById('filterModulo') ? document.getElementById('filterModulo').value : '';
+  var data = (_rawRoadmap || []).filter(function(r) {
+    if (!mod) return true;
+    return normStr(r.Modulo || r.modulo || '') === normStr(mod);
+  });
+
+  if (!data.length) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:12px">Sem dados de Roadmap. Configure a aba <strong>Roadmap</strong> na planilha.</div>';
+    return;
+  }
+
+  var allDates = [];
+  data.forEach(function(r) {
+    var s = parseDate(r.Data_Inicio || r.data_inicio || '');
+    var e = parseDate(r.Data_Fim    || r.data_fim    || '');
+    if (s) allDates.push(s);
+    if (e) allDates.push(e);
+  });
+  if (!allDates.length) { container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">Sem datas validas.</div>'; return; }
+
+  var minDate = new Date(Math.min.apply(null, allDates));
+  var maxDate = new Date(Math.max.apply(null, allDates));
+  var today   = new Date(); today.setHours(0,0,0,0);
+  minDate = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+  maxDate = new Date(maxDate.getFullYear(), maxDate.getMonth()+1, 0);
+
+  var periods = [], cursor = new Date(minDate);
+  if (_roadmapScale === 'quinzenal') {
+    while (cursor <= maxDate) {
+      var pEnd = new Date(cursor); pEnd.setDate(pEnd.getDate() + 14);
+      if (pEnd > maxDate) pEnd = new Date(maxDate);
+      periods.push({ start: new Date(cursor), end: new Date(pEnd), label: cursor.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) });
+      cursor.setDate(cursor.getDate() + 15);
+    }
+  } else {
+    while (cursor <= maxDate) {
+      var mEnd = new Date(cursor.getFullYear(), cursor.getMonth()+1, 0);
+      periods.push({ start: new Date(cursor), end: new Date(mEnd), label: cursor.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}) });
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1);
+    }
+  }
+
+  var totalMs = maxDate - minDate;
+  function pct(d) { return (Math.max(0, Math.min(d - minDate, totalMs)) / totalMs * 100).toFixed(3) + '%'; }
+
+  function statusClass(s) {
+    var sn = normStr(s||'');
+    if (sn.indexOf('conclu') >= 0) return 's-concluido';
+    if (sn.indexOf('andamento') >= 0) return 's-andamento';
+    return 's-planejado';
+  }
+
+  function barHtml(r, level) {
+    var ds = (r.Data_Inicio instanceof Date) ? r.Data_Inicio : parseDate(r.Data_Inicio || r.data_inicio || '');
+    var de = (r.Data_Fim    instanceof Date) ? r.Data_Fim    : parseDate(r.Data_Fim    || r.data_fim    || '');
+    if (!ds || !de) return '';
+    var left  = (Math.max(0, ds - minDate) / totalMs * 100).toFixed(3);
+    var right = (Math.min(totalMs, de - minDate) / totalMs * 100).toFixed(3);
+    var width = Math.max(0.4, right - left);
+    var sc    = statusClass(r.Status || r.status || '');
+    var nm    = (r.Nome || r.nome || '-').replace(/'/g, '\x27');
+    var fmt   = function(x){ return x ? x.toLocaleDateString('pt-BR') : '-'; };
+    var dias  = Math.round((de - ds) / 86400000);
+    return '<div class="roadmap-bar ' + sc + ' lvl-' + level + '" style="left:' + left + '%;width:' + width + '%" ' +
+      'onmouseenter="showRmTip(event,{nome:\'' + nm + '\',tipo:\'' + normStr(r.Tipo||r.tipo||'') + '\',status:\'' + normStr(r.Status||r.status||'') + '\',inicio:\'' + fmt(ds) + '\',fim:\'' + fmt(de) + '\',dias:' + dias + '})" ' +
+      'onmouseleave="hideRmTip()"></div>';
+  }
+
+  function rowHtml(r, level, label) {
+    var indent = level === 0 ? '' : (level === 1 ? '└─ ' : '└─ ');
+    var row = '<div class="roadmap-row">';
+    row += '<div class="roadmap-label lvl-' + level + '" title="' + label.replace(/"/g,'&quot;') + '">' + indent + label + '</div>';
+    row += '<div class="roadmap-timeline">';
+    periods.forEach(function(p, pi) {
+      var lp = (Math.max(0, p.start - minDate) / totalMs * 100).toFixed(3);
+      var isTodayCol = today >= p.start && today <= p.end;
+      var colW = ((p.end - p.start) / totalMs * 100).toFixed(3);
+      row += '<div style="position:absolute;left:' + lp + '%;top:0;bottom:0;border-left:1px solid var(--border);opacity:0.4' + (isTodayCol ? ';background:rgba(88,166,255,.07);width:' + colW + '%' : '') + '"></div>';
+    });
+    if (today >= minDate && today <= maxDate) {
+      row += '<div class="roadmap-today" style="left:' + pct(today) + '"></div>';
+    }
+    row += '<div class="roadmap-bar-wrap">' + (r ? barHtml(r, level) : '') + '</div>';
+    row += '</div></div>';
+    return row;
+  }
+
+  // Build tree from flat HU rows — Modulo and Feature derived automatically
+  var modulesOrder = [], modulesMap = {};
+  data.forEach(function(r) {
+    var mn = r.Modulo  || r.modulo  || '(Sem Modulo)';
+    var fn = r.Feature || r.feature || '(Sem Feature)';
+    if (!modulesMap[mn]) { modulesMap[mn] = { features: [], featMap: {} }; modulesOrder.push(mn); }
+    if (!modulesMap[mn].featMap[fn]) { modulesMap[mn].featMap[fn] = { hus: [] }; modulesMap[mn].features.push(fn); }
+    modulesMap[mn].featMap[fn].hus.push(r);
+  });
+
+  // Compute synthetic Modulo and Feature rows from children spans
+  modulesOrder.forEach(function(mn) {
+    var m = modulesMap[mn];
+    var mDates = [];
+    m.features.forEach(function(fn) {
+      var feat = m.featMap[fn];
+      var fDates = [];
+      feat.hus.forEach(function(hu) {
+        var s = parseDate(hu.Data_Inicio || hu.data_inicio || '');
+        var e = parseDate(hu.Data_Fim    || hu.data_fim    || '');
+        if (s) fDates.push(s); if (e) fDates.push(e);
+        if (s) mDates.push(s); if (e) mDates.push(e);
+      });
+      // Derive Feature status: worst-case of children
+      var statuses = feat.hus.map(function(h){ return normStr(h.Status||h.status||''); });
+      var fStatus = statuses.some(function(s){ return s.indexOf('andamento')>=0; }) ? 'Em andamento' :
+                    statuses.every(function(s){ return s.indexOf('conclu')>=0; })   ? 'Concluido'    : 'Planejado';
+      feat.row = fDates.length ? {
+        Data_Inicio: new Date(Math.min.apply(null,fDates)),
+        Data_Fim:    new Date(Math.max.apply(null,fDates)),
+        Status: fStatus, _synthetic: true
+      } : null;
+    });
+    // Derive Modulo status
+    var allFeatStatuses = m.features.map(function(fn){ return normStr(m.featMap[fn].row ? (m.featMap[fn].row.Status||'') : ''); });
+    var mStatus = allFeatStatuses.some(function(s){ return s.indexOf('andamento')>=0; }) ? 'Em andamento' :
+                  allFeatStatuses.every(function(s){ return s.indexOf('conclu')>=0; })   ? 'Concluido'    : 'Planejado';
+    m.row = mDates.length ? {
+      Data_Inicio: new Date(Math.min.apply(null,mDates)),
+      Data_Fim:    new Date(Math.max.apply(null,mDates)),
+      Status: mStatus, _synthetic: true
+    } : null;
+  });
+
+  // Header
+  var html = '<div style="position:relative">';
+  html += '<div class="roadmap-header">';
+  html += '<div class="roadmap-header-label">Item</div>';
+  html += '<div class="roadmap-header-cells">';
+  periods.forEach(function(p) {
+    var isTodayCol = today >= p.start && today <= p.end;
+    var colPct = ((p.end - p.start) / totalMs * 100).toFixed(3);
+    html += '<div class="roadmap-period' + (isTodayCol ? ' today-col' : '') + '" style="width:' + colPct + '%">' + p.label + '</div>';
+  });
+  html += '</div></div>';
+  html += '<div class="roadmap-tooltip" id="rmTooltip"></div>';
+
+  // Apply status filter at HU level
+  function matchesStatusFilter(r) {
+    if (!_roadmapStatusFilter) return true;
+    var s = normStr(r.Status || r.status || '');
+    return s.indexOf(_roadmapStatusFilter) >= 0;
+  }
+
+  modulesOrder.forEach(function(mn) {
+    var m = modulesMap[mn];
+
+    // Collect features visible under status filter
+    var visibleFeatures = m.features.filter(function(fn) {
+      var feat = m.featMap[fn];
+      return feat.hus.some(matchesStatusFilter);
+    });
+    if (_roadmapStatusFilter && visibleFeatures.length === 0) return;
+
+    html += rowHtml(m.row, 0, mn);
+
+    visibleFeatures.forEach(function(fn) {
+      var feat    = m.featMap[fn];
+      var featSn  = normStr(feat.row ? (feat.row.Status || '') : '');
+      var featConcluida = featSn.indexOf('conclu') >= 0;
+      // Collapsed state stored on element ID
+      var colKey  = 'rmcol_' + mn + '_' + fn;
+      var collapsed = (window[colKey] === true);
+
+      // Feature row with collapse toggle
+      var toggleId  = 'rmtog_' + mn.replace(/\s/g,'_') + '_' + fn.replace(/\s/g,'_');
+      var dStart = feat.row ? ((feat.row.Data_Inicio instanceof Date) ? feat.row.Data_Inicio : parseDate(feat.row.Data_Inicio||'')) : null;
+      var dEnd   = feat.row ? ((feat.row.Data_Fim    instanceof Date) ? feat.row.Data_Fim    : parseDate(feat.row.Data_Fim   ||'')) : null;
+      var left   = dStart ? (Math.max(0, dStart - minDate) / totalMs * 100).toFixed(3) : '0';
+      var right  = dEnd   ? (Math.min(totalMs, dEnd  - minDate) / totalMs * 100).toFixed(3) : '0';
+      var width  = Math.max(0.4, right - left);
+      var sc     = feat.row ? statusClass(feat.row.Status || '') : 's-planejado';
+      var fmt    = function(x){ return x ? x.toLocaleDateString('pt-BR') : '-'; };
+      var dias   = (dStart && dEnd) ? Math.round((dEnd - dStart) / 86400000) : 0;
+      var fnSafe = fn.replace(/'/g,'\x27');
+      var tipStr = '{nome:\'' + fnSafe + '\',tipo:\'feature\',status:\'' + normStr(feat.row ? (feat.row.Status||'') : '') + '\',inicio:\'' + fmt(dStart) + '\',fim:\'' + fmt(dEnd) + '\',dias:' + dias + '}';
+
+      var chevron = collapsed ? '&#9654;' : '&#9660;';
+      var fLabel  = '<span onclick="rmToggleFeature(\'' + toggleId + '\',\'' + mn.replace(/'/g,'\x27') + '\',\'' + fnSafe + '\')" style="cursor:pointer;user-select:none;margin-right:4px;font-size:9px;opacity:.7">' + chevron + '</span>' + fn;
+      if (featConcluida) fLabel += ' <span style="font-size:9px;color:var(--green);margin-left:4px">&#10003;</span>';
+
+      var fRow  = '<div class="roadmap-row" id="' + toggleId + '_row">';
+      fRow += '<div class="roadmap-label lvl-1" title="' + fn + '">└─ ' + fLabel + '</div>';
+      fRow += '<div class="roadmap-timeline">';
+      periods.forEach(function(p) {
+        var lp   = (Math.max(0, p.start - minDate) / totalMs * 100).toFixed(3);
+        var colW = ((p.end - p.start) / totalMs * 100).toFixed(3);
+        var isTodayCol = today >= p.start && today <= p.end;
+        fRow += '<div style="position:absolute;left:' + lp + '%;top:0;bottom:0;border-left:1px solid var(--border);opacity:0.4' + (isTodayCol ? ';background:rgba(88,166,255,.07);width:' + colW + '%' : '') + '"></div>';
+      });
+      if (today >= minDate && today <= maxDate) fRow += '<div class="roadmap-today" style="left:' + pct(today) + '"></div>';
+      if (feat.row) fRow += '<div class="roadmap-bar-wrap"><div class="roadmap-bar ' + sc + ' lvl-1" style="left:' + left + '%;width:' + width + '%" onmouseenter="showRmTip(event,' + tipStr + ')" onmouseleave="hideRmTip()"></div></div>';
+      fRow += '</div></div>';
+      html += fRow;
+
+      // HU rows (collapsible)
+      if (!collapsed) {
+        feat.hus.filter(matchesStatusFilter).forEach(function(hu) {
+          html += rowHtml(hu, 2, hu.HU || hu.hu || hu.Nome || hu.nome || '-');
+        });
+      }
+    });
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function rmToggleFeature(toggleId, mn, fn) {
+  var colKey = 'rmcol_' + mn + '_' + fn;
+  window[colKey] = !window[colKey];
+  buildRoadmapGantt();
+}
+
+// ── Drag-and-Drop Chart Reorder ───────────────────────────────────────
+var _dragSrcEl = null;
+
+function initDragDrop() {
+  // Ensure ALL chart cards are draggable
+  document.querySelectorAll('.chart-card').forEach(function(card) {
+    card.setAttribute('draggable', 'true');
+  });
+  var cards = document.querySelectorAll('.chart-card');
+  cards.forEach(function(card) {
+    card.addEventListener('dragstart', function(e) {
+      _dragSrcEl = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', function() {
+      card.classList.remove('dragging');
+      document.querySelectorAll('.chart-card').forEach(function(c){ c.classList.remove('drag-over'); });
+    });
+    card.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (_dragSrcEl && card !== _dragSrcEl) card.classList.add('drag-over');
+    });
+    card.addEventListener('dragleave', function() { card.classList.remove('drag-over'); });
+    card.addEventListener('drop', function(e) {
+      e.stopPropagation();
+      card.classList.remove('drag-over');
+      if (_dragSrcEl && _dragSrcEl !== card) {
+        // Swap cards in DOM
+        var srcParent = _dragSrcEl.parentNode;
+        var dstParent = card.parentNode;
+        var srcNext   = _dragSrcEl.nextSibling;
+        var dstNext   = card.nextSibling;
+        if (srcNext === card) {
+          srcParent.insertBefore(card, _dragSrcEl);
+        } else if (dstNext === _dragSrcEl) {
+          dstParent.insertBefore(_dragSrcEl, card);
+        } else {
+          srcParent.insertBefore(card, srcNext);
+          dstParent.insertBefore(_dragSrcEl, dstNext);
+        }
+        // Resize charts after reorder
+        setTimeout(function(){
+          Object.values(Chart.instances).forEach(function(ch){ if(ch && ch.resize) ch.resize(); });
+        }, 50);
+      }
+    });
+  });
+}
+
+// ── Chart Settings UI ─────────────────────────────────────────────────
+function switchCfgTab(id, btn) {
+  document.querySelectorAll('.cfg-panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.cfg-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function loadCfgUI() {
+  loadChartSettings();
+  _CHART_DEFS.forEach(function(def) {
+    var id = def[0];
+    var s = _chartSettings[id] || {};
+    var enableEl = document.getElementById('cfgEnable_' + id);
+    var titleEl  = document.getElementById('cfgTitle_'  + id);
+    var descEl   = document.getElementById('cfgDesc_'   + id);
+    if (enableEl) enableEl.checked = s.enabled !== false;
+    if (titleEl)  titleEl.value    = s.title || def[1];
+    if (descEl)   descEl.value     = s.description || def[4];
+  });
+}
+
+function onCfgChange() {
+  // auto-save debounced
+  clearTimeout(window._cfgSaveTimer);
+  window._cfgSaveTimer = setTimeout(function(){ saveCfgSettings(); }, 800);
+}
+
+function saveCfgSettings() {
+  _CHART_DEFS.forEach(function(def) {
+    var id = def[0];
+    if (!_chartSettings[id]) _chartSettings[id] = {};
+    var enableEl = document.getElementById('cfgEnable_' + id);
+    var titleEl  = document.getElementById('cfgTitle_'  + id);
+    var descEl   = document.getElementById('cfgDesc_'   + id);
+    if (enableEl) _chartSettings[id].enabled     = enableEl.checked;
+    if (titleEl)  _chartSettings[id].title       = titleEl.value || def[1];
+    if (descEl)   _chartSettings[id].description = descEl.value;
+  });
+  saveChartSettings();
+  applyChartVisibility();
+  applyChartTitles();
+  var msg = document.getElementById('cfgSavedMsg');
+  if (msg) { msg.style.opacity = '1'; setTimeout(function(){ msg.style.opacity = '0'; }, 2000); }
+}
+
+function resetCfgItem(id) {
+  var def = _CHART_DEFS.find(function(d){ return d[0] === id; });
+  if (!def) return;
+  _chartSettings[id] = { enabled: true, title: def[1], description: def[4] };
+  saveChartSettings();
+  loadCfgUI();
+  applyChartVisibility();
+  applyChartTitles();
+}
+
+// ── Auto-load on startup ──────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  loadChartSettings();
+  loadCfgUI();
+  if (URL_FIXA && URL_FIXA.trim()) {
+    document.getElementById('inputScriptUrl').value = URL_FIXA.trim();
+    document.getElementById('setupOverlay').style.display = 'none';
+    loadFromScript();
+    return;
+  }
+  var saved = localStorage.getItem('dashboardScriptUrl');
+  if (saved) {
+    document.getElementById('inputScriptUrl').value = saved;
+    document.getElementById('setupOverlay').style.display = 'none';
+    loadFromScript();
+    return;
+  }
+  document.getElementById('setupOverlay').style.display = 'flex';
+  switchTab('config', document.getElementById('tabConfig'));
+});
+</script>
+</body>
+</html>
