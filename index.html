@@ -828,7 +828,7 @@ table.model td{color:var(--muted);padding:6px 10px;border:1px solid var(--border
 <script>
 // =====================================================================
 // CONFIGURACAO PERMANENTE - cole sua URL aqui para nao pedir toda vez
-const URL_FIXA = 'https://script.google.com/macros/s/AKfycbwpbH85O_yKCrKxqQz_C6P4VbUUtbXGg9xo3ZvwqL4We8iHPO4s-VDB_R-VZr823C7-/exec';
+const URL_FIXA = '';
 // =====================================================================
 
 var _rawSprints = [], _rawLeadTime = [], _rawRequisitos = [], _rawHomolog = [], _rawCapacity = [], _rawRetrabalho = [], _rawAging = [], _rawEscrita = null, _rawDev = null;
@@ -839,13 +839,25 @@ var _roadmapStatusFilter = '';
 // ── Dashboard Settings (persisted in localStorage) ────────────────
 var _chartSettings = {};  // { id: { enabled, title, description } }
 var _CHART_DEFS = [["kpi", "KPIs do Projeto", "kpiGrid", "Sempre", "📌 O que é: Resumo executivo dos principais indicadores.\n📐 Como ler: Cada card mostra o valor atual (número grande), a meta de referência, a periodicidade e uma linha de tendência. Verde = dentro da meta. Vermelho = atenção necessária.\n💡 Dica: Comece sempre pelos cards vermelhos para priorizar ações."], ["homolog_pie", "HUs em Homologacao", "cHomologacao", "Quinzenal", "📌 O que é: Distribuição atual das HUs no processo de homologação.\n📐 Como ler: Pizza com 2 fatias — azul (Em Homologação) e verde (Disponível para Homologação). O número no centro é o total somado.\n📋 Fórmula: Total = Em Homologação + Disponível para Homologação.\n💡 Dica: Um alto volume \"Em Homologação\" por muitas sprints pode indicar gargalo no processo de aceite."], ["entregas", "% de Entregas da Sprint", "cEntregas", "Quinzenal", "📌 O que é: Percentual de HUs entregues em relação às planejadas por sprint.\n📐 Como ler: Barras azuis = sprint atingiu a meta (≥ 80%). Barras vermelhas = sprint abaixo da meta. A linha tracejada marca a meta de 80%.\n📋 Fórmula: (HUs Entregues ÷ HUs Planejadas) × 100.\n💡 Dica: Padrão de barras vermelhas consecutivas indica problemas de planejamento ou capacidade."], ["retrabalho", "% de Retrabalho", "cRetrabalho", "Mensal", "📌 O que é: Volume de HUs que precisaram ser reabertas após entrega, agrupado por mês.\n📐 Como ler: Cada barra representa um mês (baseado na Data_Entrega). Barras vermelhas = HUs Reabertas. Barras verdes = HUs Entregues (total acumulado). O tooltip mostra o % de retrabalho calculado. Meta: ≤ 20%.\n📋 Fórmula: (HUs Reabertas ÷ HUs Entregues Total) × 100 por mês.\n💡 Dica: Alto retrabalho indica falhas nos critérios de aceite ou na qualidade dos requisitos."], ["leadtime", "Lead Time de HU de Requisitos", "cLeadTime", "Por HU", "📌 O que é: Tempo individual de cada HU desde o início até o aceite final.\n📐 Como ler: Eixo X = data de aceite. Eixo Y = dias de duração. Ponto azul = dentro da meta (≤ 30 dias). Ponto vermelho = acima da meta. Passe o mouse para ver detalhes da HU.\n📋 Fórmula: Data Aceite − Data Início (em dias).\n💡 Dica: Pontos isolados muito altos indicam HUs complexas ou bloqueadas."], ["aging", "Aging de HU", "cAging", "Semanal", "📌 O que é: Número de dias que as HUs permaneceram paradas no mesmo status (de Backlog até Em Desenvolvimento).\n📐 Como ler: Barras roxas = dentro da meta (≤ 15 dias). Barras vermelhas = acima da meta. A linha tracejada marca 15 dias.\n📋 Objetivo: Detectar atraso oculto por estagnação no fluxo de trabalho.\n💡 Dica: HUs com aging alto indicam bloqueios que precisam de atenção imediata."], ["reprovacao", "% de Reprovacao em Homologacao", "cReprovacao", "Mensal", "📌 O que é: Taxa de HUs devolvidas durante a homologação.\n📐 Como ler: Pizza com 2 fatias — verde (Homologadas com sucesso) e vermelho (Devolvidas). O percentual no centro indica a taxa de reprovação. Meta: ≤ 20%.\n📋 Fórmula: (Devolvidas ÷ (Homologadas + Devolvidas)) × 100.\n💡 Dica: Taxa crescente indica problemas nos critérios de aceite ou qualidade dos requisitos."], ["ltreq", "Lead Time de Requisitos", "cLTRequisitos", "Quinzenal", "📌 O que é: Tempo de levantamento de cada HU desde o início até o aceite do requisito.\n📐 Como ler: Eixo X = data de aceite do levantamento. Eixo Y = dias. Azul = dentro da meta (≤ 15 dias). Vermelho = acima. Amarelo = em andamento (sem aceite ainda).\n📋 Fórmula: Data_Aceite − Data_Inicio (em dias).\n💡 Dica: HUs amarelas com muitos dias indicam levantamentos em aberto há muito tempo."], ["hus", "HUs Priorizadas", "cHUs", "Quinzenal", "📌 O que é: Quantidade de HUs priorizadas para desenvolvimento por sprint.\n📐 Como ler: Cada barra representa uma sprint. A linha tracejada marca a meta de ≥ 4 HUs. Barras abaixo da linha indicam sprints com backlog insuficiente.\n📋 Meta: ≥ 4 HUs priorizadas por sprint.\n💡 Dica: Sprints com poucas HUs priorizadas podem indicar problemas no refinamento do backlog."], ["capacity", "Capacity do Time por Sprint", "cCapacity", "Por Sprint", "📌 O que é: Comparativo entre horas disponíveis e planejadas por função em cada sprint.\n📐 Como ler: Barras azuis = horas disponíveis. Barras amarelas = horas planejadas. Cada grupo é uma função (UX/UI, Front-end, etc.). O tooltip mostra % de utilização e horas livres.\n💡 Dica: Funções com planejado > disponível indicam sobrecarga. Use o filtro de Sprint para análise pontual."], ["burnescrita", "Burndown de Escrita de HUs", "cBurnEscrita", "Quinzenal", "📌 O que é: Ritmo de escrita e refinamento das HUs ao longo do tempo.\n📐 Como ler: 3 linhas — Planejado (tracejada cinza), Tendência Linear (pontilhada amarela) e Real (colorida). A linha Real deve ficar ABAIXO da Tendência Linear para indicar bom ritmo.\n📋 Meta: Linha Real abaixo da tendência linear.\n💡 Dica: Real acima da tendência indica atraso na escrita — revise a capacidade do time de requisitos."], ["burndev", "Burndown de Desenvolvimento de HUs", "cBurnDev", "Quinzenal", "📌 O que é: Ritmo de desenvolvimento das HUs por sprint ao longo do projeto.\n📐 Como ler: Igual ao Burndown de Escrita. A linha Real deve ficar ABAIXO da Tendência Linear para indicar que o desenvolvimento está no ritmo ou à frente.\n📋 Meta: Linha Real abaixo da tendência linear.\n💡 Dica: Real acima da tendência indica que o time está atrasado — verifique impedimentos técnicos."]];
+
 function loadChartSettings() {
   var saved = localStorage.getItem('dashboardChartSettings');
   if (saved) { try { _chartSettings = JSON.parse(saved); } catch(e){} }
+  
+  // Configurações exportadas (prioridade sobre localStorage)
+  var exportedSettings = {"kpi":{"enabled":false},"homolog_pie":{"enabled":false},"entregas":{"enabled":true},"retrabalho":{"enabled":true},"leadtime":{"enabled":true},"aging":{"enabled":true},"reprovacao":{"enabled":false},"ltreq":{"enabled":false},"hus":{"enabled":true},"capacity":{"enabled":false},"burnescrita":{"enabled":true},"burndev":{"enabled":true}};
+  
   _CHART_DEFS.forEach(function(def) {
     var id = def[0];
     if (!_chartSettings[id]) _chartSettings[id] = {};
-    if (_chartSettings[id].enabled === undefined) _chartSettings[id].enabled = true;
+    
+    // Aplicar configurações exportadas
+    if (exportedSettings[id]) {
+      _chartSettings[id].enabled = exportedSettings[id].enabled;
+    } else if (_chartSettings[id].enabled === undefined) {
+      _chartSettings[id].enabled = true;
+    }
+    
     if (!_chartSettings[id].title) _chartSettings[id].title = def[1];
     if (!_chartSettings[id].description) _chartSettings[id].description = def[4];
   });
@@ -923,6 +935,42 @@ function exportConfiguredDashboard() {
     // Encontrar e substituir _CHART_DEFS
     var chartDefsRegex = /var _CHART_DEFS = \[[\s\S]*?\]\];/;
     htmlContent = htmlContent.replace(chartDefsRegex, 'var _CHART_DEFS = ' + newChartDefsStr + ';');
+    
+    // 1.5. Injetar configurações de visibilidade dos gráficos
+    var visibilitySettings = {};
+    _CHART_DEFS.forEach(function(def) {
+      var id = def[0];
+      var settings = _chartSettings[id] || {};
+      visibilitySettings[id] = {
+        enabled: settings.enabled !== undefined ? settings.enabled : true
+      };
+    });
+    
+    var visibilityCode = '\nfunction loadChartSettings() {\n' +
+      '  var saved = localStorage.getItem(\'dashboardChartSettings\');\n' +
+      '  if (saved) { try { _chartSettings = JSON.parse(saved); } catch(e){} }\n' +
+      '  \n' +
+      '  // Configurações exportadas (prioridade sobre localStorage)\n' +
+      '  var exportedSettings = ' + JSON.stringify(visibilitySettings) + ';\n' +
+      '  \n' +
+      '  _CHART_DEFS.forEach(function(def) {\n' +
+      '    var id = def[0];\n' +
+      '    if (!_chartSettings[id]) _chartSettings[id] = {};\n' +
+      '    \n' +
+      '    // Aplicar configurações exportadas\n' +
+      '    if (exportedSettings[id]) {\n' +
+      '      _chartSettings[id].enabled = exportedSettings[id].enabled;\n' +
+      '    } else if (_chartSettings[id].enabled === undefined) {\n' +
+      '      _chartSettings[id].enabled = true;\n' +
+      '    }\n' +
+      '    \n' +
+      '    if (!_chartSettings[id].title) _chartSettings[id].title = def[1];\n' +
+      '    if (!_chartSettings[id].description) _chartSettings[id].description = def[4];\n' +
+      '  });\n' +
+      '}';
+    
+    var loadChartSettingsRegex = /function loadChartSettings\(\) \{[\s\S]*?\n\}/;
+    htmlContent = htmlContent.replace(loadChartSettingsRegex, visibilityCode);
     
     // 2. Substituir URL do Apps Script se configurada
     var scriptUrl = localStorage.getItem('dashboardScriptUrl');
